@@ -1,0 +1,84 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+type Writeup = CollectionEntry<'writeups'>;
+
+interface Props {
+  writeup: Writeup;
+}
+
+const { writeup } = Astro.props;
+const { title, description, date, category, readTime, tags, mitre } = writeup.data;
+
+const readableDate = new Intl.DateTimeFormat('en-US', {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+}).format(date);
+---
+
+<article class="card writeup-card">
+  <a class="card-link" href={`/writeups/${writeup.id}/`}>
+    <div class="card-top">
+      <span class="cat-badge {category}">{category}</span>
+      <span class="card-meta"><time datetime={date.toISOString()}>{readableDate}</time> · {readTime}</span>
+    </div>
+    <h3 class="card-title font-display">{title}</h3>
+    <p class="card-desc">{description}</p>
+    <ul class="tags-row">
+      {tags.map((t) => <li class="tag">{t}</li>)}
+    </ul>
+    {mitre.length > 0 && (
+      <ul class="mitre-row" aria-label="MITRE ATT&CK techniques">
+        {mitre.map((m) => <li class="mitre-tag">{m}</li>)}
+      </ul>
+    )}
+  </a>
+</article>
+
+<style is:global>
+  .writeup-card {
+    overflow: hidden;
+  }
+  .card-link {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 1.25rem;
+    color: inherit;
+    text-decoration: none;
+    height: 100%;
+  }
+  .card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .card-meta {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+  .card-title {
+    font-size: 1.05rem;
+    margin: 0;
+    color: var(--text);
+  }
+  .card-desc {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    line-height: 1.55;
+    flex: 1;
+  }
+  .tags-row,
+  .mitre-row {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0;
+    margin: 0;
+  }
+</style>

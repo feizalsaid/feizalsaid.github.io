@@ -1,0 +1,413 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ */
+/* Design tokens exposed to Tailwind utilities (v4 @theme)            */
+/* ------------------------------------------------------------------ */
+@theme {
+  --color-bg: var(--bg);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-secondary: var(--text-secondary);
+  --color-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
+  --color-orange: var(--orange);
+  --color-green: var(--green);
+  --color-danger: var(--danger);
+  --color-purple: var(--purple);
+  --color-teal: var(--teal);
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --radius-card: var(--radius);
+}
+
+/* ------------------------------------------------------------------ */
+/* Design tokens                                                      */
+/* ------------------------------------------------------------------ */
+:root {
+  --bg: #ffffff;
+  --bg-subtle: #f8f9fa;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f3f5;
+  --surface: #ffffff;
+  --border: #e9ecef;
+  --border-hover: #dee2e6;
+  --text: #1a1a2e;
+  --text-secondary: #495057;
+  --text-muted: #868e96;
+  --accent: #1a73e8;
+  --accent-soft: rgba(26, 115, 232, 0.08);
+  --accent-text: #1a73e8;
+  --orange: #ff6b35;
+  --orange-soft: rgba(255, 107, 53, 0.08);
+  --green: #34a853;
+  --danger: #dc3545;
+  --purple: #6f42c1;
+  --teal: #17a2b8;
+  --header-bg: rgba(255, 255, 255, 0.85);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --code-bg: #f1f3f5;
+  --code-text: #1a73e8;
+  --pre-bg: #f8f9fa;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.08), 0 4px 10px rgba(0, 0, 0, 0.05);
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg: #09090b;
+  --bg-subtle: #111113;
+  --bg-card: rgba(255, 255, 255, 0.03);
+  --bg-card-hover: rgba(255, 255, 255, 0.06);
+  --surface: #18181b;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.15);
+  --text: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --accent: #4da3ff;
+  --accent-soft: rgba(77, 163, 255, 0.12);
+  --accent-text: #4da3ff;
+  --orange: #ff8c5a;
+  --green: #4ade80;
+  --danger: #f87171;
+  --purple: #a78bfa;
+  --teal: #2dd4bf;
+  --header-bg: rgba(9, 9, 11, 0.7);
+  --code-bg: #18181b;
+  --code-text: #4da3ff;
+  --pre-bg: #0f0f11;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.4), 0 4px 10px rgba(0, 0, 0, 0.3);
+  color-scheme: dark;
+}
+
+/* Fallback for first visit before JS sets data-theme */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg: #09090b;
+    --bg-subtle: #111113;
+    --bg-card: rgba(255, 255, 255, 0.03);
+    --bg-card-hover: rgba(255, 255, 255, 0.06);
+    --surface: #18181b;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-hover: rgba(255, 255, 255, 0.15);
+    --text: #fafafa;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
+    --accent: #4da3ff;
+    --accent-soft: rgba(77, 163, 255, 0.12);
+    --accent-text: #4da3ff;
+    --orange: #ff8c5a;
+    --green: #4ade80;
+    --danger: #f87171;
+    --purple: #a78bfa;
+    --teal: #2dd4bf;
+    --header-bg: rgba(9, 9, 11, 0.7);
+    --code-bg: #18181b;
+    --code-text: #4da3ff;
+    --pre-bg: #0f0f11;
+    color-scheme: dark;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Base                                                               */
+/* ------------------------------------------------------------------ */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Grain overlay for the terminal aesthetic */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.015;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] body::before {
+  opacity: 0.025;
+}
+
+/* Grid background */
+.grid-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 60% 50% at 50% 0%, black 30%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 0%, black 30%, transparent 70%);
+}
+[data-theme="dark"] .grid-bg {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+}
+
+.glow-orb {
+  position: fixed;
+  width: 600px;
+  height: 600px;
+  border-radius: 100%;
+  filter: blur(120px);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.06;
+}
+[data-theme="dark"] .glow-orb {
+  opacity: 0.07;
+}
+.glow-orb-1 {
+  background: var(--accent);
+  top: -200px;
+  right: -100px;
+}
+.glow-orb-2 {
+  background: var(--purple);
+  top: 40%;
+  left: -250px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Typography helpers                                                 */
+/* ------------------------------------------------------------------ */
+.font-display {
+  font-family: var(--font-display);
+}
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.25;
+}
+
+a {
+  color: var(--accent);
+}
+a:hover {
+  text-decoration: underline;
+}
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Components                                                         */
+/* ------------------------------------------------------------------ */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow);
+}
+
+.cat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  width: fit-content;
+}
+.cat-badge.offensive {
+  background: var(--danger-soft, rgba(220, 53, 69, 0.1));
+  color: var(--danger);
+}
+.cat-badge.defensive {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.cat-badge.ai {
+  background: var(--purple-soft, rgba(111, 66, 193, 0.1));
+  color: var(--purple);
+}
+
+.tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  background: transparent;
+}
+
+.mitre-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+/* Prose for writeup articles */
+.writeup-body {
+  max-width: 48rem;
+  color: var(--text-secondary);
+  line-height: 1.75;
+}
+.writeup-body h1,
+.writeup-body h2,
+.writeup-body h3,
+.writeup-body h4 {
+  color: var(--text);
+  margin: 2rem 0 1rem;
+}
+.writeup-body h1 {
+  font-size: 2rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+}
+.writeup-body h2 {
+  font-size: 1.4rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+}
+.writeup-body h3 {
+  font-size: 1.15rem;
+}
+.writeup-body p {
+  margin-bottom: 1rem;
+}
+.writeup-body ul,
+.writeup-body ol {
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+.writeup-body li {
+  margin: 0.4rem 0;
+}
+.writeup-body code {
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+.writeup-body pre {
+  background: var(--pre-bg);
+  border: 1px solid var(--border);
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  margin: 1.5rem 0;
+}
+.writeup-body pre code {
+  background: none;
+  padding: 0;
+}
+.writeup-body img {
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  margin: 1rem 0;
+}
+.writeup-body blockquote {
+  border-left: 3px solid var(--accent);
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  background: var(--accent-soft);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--text-secondary);
+}
+.writeup-body table {
+  width: 100%;
+  margin: 1rem 0;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.writeup-body th,
+.writeup-body td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+.writeup-body th {
+  background: var(--bg-card);
+  color: var(--text);
+  font-weight: 600;
+}
+.writeup-body hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
+.writeup-body a {
+  color: var(--accent-text);
+}
+
+/* Prose for generic markdown (about/certs/skills long-form if needed) */
+.prose-body {
+  color: var(--text-secondary);
+  line-height: 1.75;
+}
+.prose-body h2 {
+  color: var(--text);
+  font-size: 1.4rem;
+  margin: 2rem 0 1rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}

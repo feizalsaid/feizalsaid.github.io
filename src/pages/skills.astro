@@ -1,0 +1,73 @@
+---
+import BaseLayout from '../components/BaseLayout.astro';
+import PageHeader from '../components/PageHeader.astro';
+import { SKILLS } from '../data/site';
+---
+
+<BaseLayout
+  title="Skills"
+  description="Security operations, cloud & infrastructure, offensive security, and scripting skills — Wazuh, Splunk, MITRE ATT&CK, Terraform, Ansible, and more."
+  canonical="/skills/"
+  ogImage="/images/og-cover.png"
+>
+  <PageHeader
+    title="Skills"
+    prefix="~/skills"
+    description="The tooling and techniques I reach for across defensive and offensive security."
+  />
+
+  <div class="wrap">
+    <dl class="skill-list">
+      {SKILLS.map((g) => (
+        <div class="card skill-group">
+          <dt class="skill-group-name font-display">
+            <span class="accent arrow" aria-hidden="true">▸</span> {g.group}
+          </dt>
+          <dd class="skill-tags">
+            <ul class="skill-tag-list">
+              {g.skills.map((s) => <li class="tag skill-tag">{s}</li>)}
+            </ul>
+          </dd>
+        </div>
+      ))}
+    </dl>
+  </div>
+</BaseLayout>
+
+<style is:global>
+  .wrap {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 0.5rem 1.25rem 4rem;
+  }
+  .skill-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin: 0;
+  }
+  .skill-group {
+    padding: 1.5rem;
+  }
+  .skill-group-name {
+    font-size: 1.1rem;
+    margin: 0 0 1rem;
+    color: var(--text);
+  }
+  .skill-group-name .arrow {
+    color: var(--accent-text);
+  }
+  .skill-tag-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .skill-tag {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.7rem;
+  }
+  .accent { color: var(--accent-text); }
+</style>

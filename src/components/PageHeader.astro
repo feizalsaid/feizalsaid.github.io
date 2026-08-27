@@ -1,0 +1,38 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+  prefix?: string;
+}
+
+const { title, description, prefix } = Astro.props;
+---
+
+<section class="page-head">
+  {prefix && <p class="page-prefix font-mono">{prefix}</p>}
+  <h1 class="page-title font-display">{title}</h1>
+  {description && <p class="page-desc">{description}</p>}
+</section>
+
+<style is:global>
+  .page-head {
+    padding: 3rem 1.25rem 1.5rem;
+    max-width: 72rem;
+    margin: 0 auto;
+  }
+  .page-prefix {
+    color: var(--accent);
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+  }
+  .page-title {
+    font-size: clamp(1.9rem, 4vw, 2.75rem);
+    margin: 0 0 0.75rem;
+  }
+  .page-desc {
+    max-width: 48rem;
+    color: var(--text-secondary);
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+</style>

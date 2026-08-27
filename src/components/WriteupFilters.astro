@@ -1,0 +1,160 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import WriteupCard from './WriteupCard.astro';
+
+interface Props {
+  writeups: CollectionEntry<'writeups'>[];
+}
+
+const { writeups } = Astro.props;
+
+const sorted = [...writeups].sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+const filters: { key: string; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'offensive', label: 'Offensive' },
+  { key: 'defensive', label: 'Defensive' },
+  { key: 'ai', label: 'AI Sec' },
+];
+---
+
+<div class="writeups-toolbar">
+  <div class="filters" role="group" aria-label="Filter writeups by category">
+    {filters.map((f) => (
+      <button type="button" class:list={['filter-btn', 'font-mono', { active: f.key === 'all' }]} data-filter={f.key} aria-pressed={f.key === 'all'}>
+        {f.label}
+      </button>
+    ))}
+  </div>
+  <label class="search" for="writeup-search">
+    <span class="font-mono tip" aria-hidden="true">$</span>
+    <input id="writeup-search" class="search-input font-mono" type="search" placeholder="grep -i 'writeup'" autocomplete="off" />
+  </label>
+</div>
+
+<div class="writeup-count font-mono" data-count-role>Showing {sorted.length} writeups</div>
+
+<div class="writeup-list" data-list>
+  {sorted.map((w) => {
+    const s = [w.data.title, w.data.description, w.data.category, ...w.data.tags, ...w.data.mitre].join(' ').toLowerCase();
+    return (
+      <div class="writeup-item" data-item data-category={w.data.category} data-search={s}>
+        <WriteupCard writeup={w} />
+      </div>
+    );
+  })}
+</div>
+
+<script>
+  const list = document.querySelector('[data-list]');
+  const items = Array.from(list?.querySelectorAll('[data-item]') || []);
+  const count = document.querySelector('[data-count-role]');
+  const searchInput = document.getElementById('writeup-search') as HTMLInputElement | null;
+  const filterBtns = Array.from(document.querySelectorAll('[data-filter]'));
+
+  let activeFilter = 'all';
+  let query = '';
+
+  function apply() {
+    let visible = 0;
+    for (const item of items) {
+      const cat = item.getAttribute('data-category') || '';
+      const haystack = item.getAttribute('data-search') || '';
+      const matchCat = activeFilter === 'all' || cat === activeFilter;
+      const matchQ = !query || haystack.includes(query);
+      const show = matchCat && matchQ;
+      item.classList.toggle('is-hidden', !show);
+      if (show) visible++;
+    }
+    if (count) count.textContent = `Showing ${visible} of ${items.length} writeups`;
+  }
+
+  for (const btn of filterBtns) {
+    btn.addEventListener('click', () => {
+      activeFilter = (btn as HTMLElement).getAttribute('data-filter') || 'all';
+      filterBtns.forEach((b) => {
+        const active = b === btn;
+        b.classList.toggle('active', active);
+        b.setAttribute('aria-pressed', String(active));
+      });
+      apply();
+    });
+  }
+
+  searchInput?.addEventListener('input', () => {
+    query = (searchInput.value || '').trim().toLowerCase();
+    apply();
+  });
+</script>
+
+<style is:global>
+  .writeups-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+  .filters {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+  .filter-btn {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .filter-btn:hover {
+    color: var(--text);
+    border-color: var(--border-hover);
+  }
+  .filter-btn.active {
+    color: var(--accent-text);
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .search {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.4rem 0.7rem;
+    background: var(--bg-card);
+  }
+  .search .tip { color: var(--accent-text); }
+  .search-input {
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-size: 0.85rem;
+    outline: none;
+    width: 12rem;
+  }
+  .search-input::placeholder { color: var(--text-muted); }
+  .writeup-count {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    margin-bottom: 1rem;
+  }
+  .writeup-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.25rem;
+  }
+  .writeup-item.is-hidden {
+    display: none;
+  }
+  @media (max-width: 640px) {
+    .search-input { width: 100%; }
+    .search { width: 100%; }
+    .writeups-toolbar { flex-direction: column; align-items: stretch; }
+  }
+</style>

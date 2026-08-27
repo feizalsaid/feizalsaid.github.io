@@ -1,0 +1,305 @@
+---
+import BaseLayout from '../components/BaseLayout.astro';
+import WriteupCard from '../components/WriteupCard.astro';
+import { getCollection } from 'astro:content';
+import { ABOUT, SITE, CERTIFICATIONS } from '../data/site';
+
+const recentWriteups = (await getCollection('writeups'))
+  .filter((w) => w.data.date <= new Date())
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .slice(0, 4);
+
+const certs = CERTIFICATIONS.slice(0, 3);
+---
+
+<BaseLayout
+  title="Feizal Said — Cybersecurity Engineer"
+  description="Cybersecurity & Cloud Security Engineer specializing in threat detection, SIEM operations, penetration testing, and cloud infrastructure security. 72+ labs completed."
+  canonical="/"
+  ogImage="/images/og-cover.png"
+>
+  <section class="hero">
+    <div class="hero-grid">
+      <div class="hero-text">
+        <p class="hero-prompt font-mono" aria-hidden="true">
+          <span class="accent">$</span> whoami
+        </p>
+        <h1 class="hero-title font-display">
+          Hi, I'm <span class="accent">Feizal</span>.
+          <br />
+          I break into systems and build
+          <br />
+          the defenses that stop them.
+        </h1>
+        <p class="hero-sub">{ABOUT.title}</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="/writeups/">Read writeups</a>
+          <a class="btn btn-ghost" href="/certifications/">Certifications</a>
+        </div>
+      </div>
+
+      <div class="hero-aside">
+        <div class="terminal card">
+          <div class="term-bar">
+            <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+            <span class="term-title font-mono">feizal@sec: ~</span>
+          </div>
+          <pre class="term-body font-mono"><code><span class="t-prom pt">$</span> cat about_me.md
+<span class="t-mut"># Feizal Said</span>
+<span class="t-mut"># Cybersecurity &amp; Cloud Security Engineer</span>
+<span class="t-mut"># Nairobi, Kenya</span>
+
+<span class="t-sec sec1">status</span>: <span class="ok">● HTB CPTS in progress</span>
+<span class="t-sec sec2">labs</span>   : <span class="ok">72+ HTB · THM · VulnHub</span>
+<span class="t-sec sec3">detect</span> : <span class="ok">Wazuh · Splunk · MITRE</span>
+<span class="t-sec sec4">iac</span>    : <span class="ok">Ansible · Terraform · Vagrant</span>
+<span class="t-sec sec5">cloud</span>  : <span class="ok">AWS · Azure (in progress)</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <ul class="hero-tags">
+      {ABOUT.tags.map((t) => <li class="tag">{t}</li>)}
+    </ul>
+  </section>
+
+  <section class="section" aria-labelledby="about-heading">
+    <div class="section-head">
+      <h2 id="about-heading" class="section-title font-display"><span class="accent">#</span> About</h2>
+    </div>
+    <div class="about-grid">
+      <div class="about-content">
+        {ABOUT.paragraphs.map((p) => (
+          <p class:list={['about-p', { lead: p.lead }]}>{p.text}</p>
+        ))}
+        <ul class="contact-links">
+          <li><a href={SITE.socials.github} target="_blank" rel="noopener noreferrer">github/feizalsaid</a></li>
+          <li><a href={SITE.socials.linkedin} target="_blank" rel="noopener noreferrer">linkedin/feizalsaid</a></li>
+          <li><a href={SITE.socials.hackthebox} target="_blank" rel="noopener noreferrer">hackthebox/feizalsaid</a></li>
+          <li><a href={SITE.socials.tryhackme} target="_blank" rel="noopener noreferrer">tryhackme/feizalsaid</a></li>
+          <li><a href={`mailto:${SITE.email}`}>feizalsaid9@gmail.com</a></li>
+        </ul>
+      </div>
+      <div class="profile-wrap">
+        <img src={ABOUT.profile!.src} alt={ABOUT.profile!.alt} width={ABOUT.profile!.width} height={ABOUT.profile!.height} class="profile" loading="lazy" />
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="latest-heading">
+    <div class="section-head section-row">
+      <h2 id="latest-heading" class="section-title font-display"><span class="accent">#</span> Latest writeups</h2>
+      <a class="section-link font-mono" href="/writeups/">view all →</a>
+    </div>
+    <div class="writeup-grid">
+      {recentWriteups.map((w) => <WriteupCard writeup={w} />)}
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="certs-heading">
+    <div class="section-head section-row">
+      <h2 id="certs-heading" class="section-title font-display"><span class="accent">#</span> Certifications</h2>
+      <a class="section-link font-mono" href="/certifications/">view all →</a>
+    </div>
+    <div class="cert-grid">
+      {certs.map((c) => (
+        <div class="card cert-card">
+          <h3 class="cert-name font-display">{c.name}</h3>
+          <p class="cert-date font-mono">{c.date}</p>
+          <p class="cert-desc">{c.description}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+</BaseLayout>
+
+<style is:global>
+  .hero {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 3.5rem 1.25rem 2rem;
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 3rem;
+    align-items: center;
+  }
+  .hero-prompt {
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+  }
+  .hero-prompt .accent {
+    color: var(--accent);
+  }
+  .hero-title {
+    font-size: clamp(1.8rem, 4.5vw, 3rem);
+    line-height: 1.15;
+    margin: 0 0 1.25rem;
+  }
+  .hero-title .accent {
+    color: var(--accent-text);
+  }
+  .hero-sub {
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+    max-width: 34rem;
+    margin-bottom: 1.75rem;
+  }
+  .hero-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .btn {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    padding: 0.6rem 1.1rem;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+  }
+  .btn-primary:hover {
+    filter: brightness(1.1);
+    text-decoration: none;
+  }
+  .btn-ghost {
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+  .btn-ghost:hover {
+    border-color: var(--border-hover);
+    color: var(--text);
+    text-decoration: none;
+  }
+  .terminal {
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .term-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 0.9rem;
+    background: var(--bg-subtle);
+    border-bottom: 1px solid var(--border);
+  }
+  .dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+  }
+  .dot-r { background: #ff5f57; }
+  .dot-y { background: #febc2e; }
+  .dot-g { background: #28c840; }
+  .term-title { margin-left: auto; font-size: 0.72rem; color: var(--text-muted); }
+  .term-body {
+    background: var(--pre-bg);
+    padding: 1.25rem;
+    font-size: 0.82rem;
+    line-height: 1.7;
+    overflow-x: auto;
+  }
+  .t-prom { color: var(--accent); }
+  .pt { color: var(--accent); }
+  .t-mut { color: var(--text-muted); }
+  .t-sec { color: var(--accent-text); }
+  .ok { color: var(--green); }
+  .hero-tags {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 2.5rem;
+    padding: 0;
+  }
+  .section {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 2rem 1.25rem;
+  }
+  .section-head {
+    margin-bottom: 1.5rem;
+  }
+  .section-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .section-title {
+    font-size: clamp(1.4rem, 3vw, 1.9rem);
+    margin: 0;
+  }
+  .section-title .accent { color: var(--accent-text); }
+  .section-link {
+    color: var(--accent-text);
+    font-size: 0.85rem;
+    text-decoration: none;
+  }
+  .section-link:hover { text-decoration: underline; }
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr 15rem;
+    gap: 2.5rem;
+  }
+  .about-p {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    line-height: 1.7;
+  }
+  .about-p.lead {
+    color: var(--text);
+    font-size: 1.05rem;
+  }
+  .contact-links {
+    list-style: none;
+    padding: 0;
+    margin-top: 1.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+  }
+  .contact-links a {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--accent-text);
+    text-decoration: none;
+  }
+  .contact-links a:hover { text-decoration: underline; }
+  .profile-wrap { display: flex; justify-content: center; }
+  .profile {
+    width: 15rem;
+    height: 15rem;
+    object-fit: cover;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+  }
+  .writeup-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.25rem;
+  }
+  .cert-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+  }
+  .cert-card { padding: 1.25rem; }
+  .cert-name { font-size: 1.05rem; margin: 0 0 0.25rem; }
+  .cert-date { color: var(--accent-text); font-size: 0.78rem; margin-bottom: 0.75rem; }
+  .cert-desc { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; }
+
+  @media (max-width: 768px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 2rem; }
+    .about-grid { grid-template-columns: 1fr; }
+    .profile-wrap { display: none; }
+  }
+</style>

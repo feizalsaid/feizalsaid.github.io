@@ -1,0 +1,72 @@
+---
+const year = new Date().getFullYear();
+const socials = [
+  { label: 'GitHub', href: 'https://github.com/feizalsaid', icon: 'github' },
+  { label: 'LinkedIn', href: 'https://www.linkedin.com/in/feizalsaid', icon: 'linkedin' },
+  { label: 'Hack The Box', href: 'https://app.hackthebox.com/users/feizalsaid', icon: 'cube' },
+  { label: 'TryHackMe', href: 'https://tryhackme.com/p/feizalsaid', icon: 'flag' },
+  { label: 'Email', href: 'mailto:feizalsaid9@gmail.com', icon: 'mail' },
+];
+---
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <p class="footer-line">
+      <span class="prompt" aria-hidden="true">$</span> whoami
+      <span class="dim">→ Feizal Said · Nairobi, Kenya</span>
+    </p>
+    <ul class="footer-links" aria-label="Social links">
+      {socials.map((s) => (
+        <li><a href={s.href} target="_blank" rel="noopener noreferrer">{s.label}</a></li>
+      ))}
+    </ul>
+    <p class="copy">&copy; {year} Feizal Said. Built with Astro.</p>
+  </div>
+</footer>
+
+<style is:global>
+  .site-footer {
+    border-top: 1px solid var(--border);
+    background: var(--bg-subtle);
+  }
+  .footer-inner {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 1.5rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .footer-line {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+  }
+  .footer-line .prompt {
+    color: var(--accent);
+  }
+  .footer-line .dim {
+    color: var(--text-muted);
+  }
+  .footer-links {
+    list-style: none;
+    display: flex;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    padding: 0;
+  }
+  .footer-links a {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+  .footer-links a:hover {
+    color: var(--accent);
+  }
+  .copy {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+</style>

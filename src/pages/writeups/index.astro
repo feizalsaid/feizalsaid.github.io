@@ -1,0 +1,33 @@
+---
+import BaseLayout from '../../components/BaseLayout.astro';
+import PageHeader from '../../components/PageHeader.astro';
+import WriteupFilters from '../../components/WriteupFilters.astro';
+import { getCollection } from 'astro:content';
+
+const writeups = (await getCollection('writeups')).filter((w) => w.data.date <= new Date());
+---
+
+<BaseLayout
+  title="Writeups & Walkthroughs"
+  description="Security writeups and walkthroughs across VulnHub, Hack The Box, TryHackMe, OverTheWire, and UnderTheWire — plus SIEM detection content and lab guides."
+  canonical="/writeups/"
+  ogImage="/images/og-cover.png"
+>
+  <PageHeader
+    title="Writeups"
+    prefix="~/writeups"
+    description="Documented walkthroughs from labs, CTFs, and real-world scenarios. Each writeup covers the full attack chain with defensive takeaways."
+  />
+
+  <div class="list-wrap">
+    <WriteupFilters writeups={writeups} />
+  </div>
+</BaseLayout>
+
+<style is:global>
+  .list-wrap {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 0.5rem 1.25rem 4rem;
+  }
+</style>

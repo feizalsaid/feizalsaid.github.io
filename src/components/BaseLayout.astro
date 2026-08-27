@@ -1,0 +1,110 @@
+---
+import '../styles/global.css';
+import Header from './Header.astro';
+import Footer from './Footer.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  ogImage?: string;
+  /** Canonical path (e.g. "/writeups/vh-gaara-01") */
+  canonical?: string;
+  /** No index (e.g. 404) */
+  noindex?: boolean;
+}
+
+const { title, description, ogImage, canonical, noindex = false } = Astro.props;
+
+const SITE = Astro.site ?? new URL('https://feizalsaid.github.io');
+const path = canonical ?? Astro.url.pathname;
+const canonicalUrl = new URL(path, SITE).href;
+const defaultOgImage = ogImage ? new URL(ogImage, SITE).href : new URL('/images/og-cover.jpg', SITE).href;
+const pageTitle = title.endsWith('Feizal Said')
+  ? title
+  : `${title} · Feizal Said`;
+const pageDesc = description || 'Feizal Said — Cybersecurity & Cloud Security Engineer.';
+---
+
+<!doctype html>
+<html lang="en" data-theme>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={pageDesc} />
+
+    <!-- Theme: apply before paint to avoid FOUC -->
+    <script is:inline>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          var dark = t
+            ? t === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        } catch (e) {
+          document.documentElement.setAttribute(
+            'data-theme',
+            window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          );
+        }
+      })();
+    </script>
+
+    <!-- Social / OG -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={pageDesc} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={defaultOgImage} />
+    <meta property="og:site_name" content="Feizal Said" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={pageDesc} />
+    <meta name="twitter:image" content={defaultOgImage} />
+
+    {noindex && <meta name="robots" content="noindex" />}
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Structured data -->
+    <script is:inline type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Feizal Said",
+        "url": {new URL('/', SITE).href},
+        "jobTitle": "Cybersecurity & Cloud Security Engineer",
+        "email": "mailto:feizalsaid9@gmail.com",
+        "sameAs": [
+          "https://github.com/feizalsaid",
+          "https://www.linkedin.com/in/feizalsaid",
+          "https://app.hackthebox.com/users/feizalsaid",
+          "https://tryhackme.com/p/feizalsaid"
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <!-- Background layers -->
+    <div class="grid-bg" aria-hidden="true"></div>
+    <div class="glow-orb glow-orb-1" aria-hidden="true"></div>
+    <div class="glow-orb glow-orb-2" aria-hidden="true"></div>
+
+    <div class="relative z-10 flex min-h-screen flex-col">
+      <Header />
+      <main class="relative flex-1">
+        <slot />
+      </main>
+      <Footer />
+    </div>
+  </body>
+</html>

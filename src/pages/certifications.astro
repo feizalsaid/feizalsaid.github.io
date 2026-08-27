@@ -1,0 +1,96 @@
+---
+import BaseLayout from '../components/BaseLayout.astro';
+import PageHeader from '../components/PageHeader.astro';
+import { CERTIFICATIONS } from '../data/site';
+---
+
+<BaseLayout
+  title="Certifications & Credentials"
+  description="CompTIA Security+ (earned), HTB CJCA coursework (earned), and HTB CPTS (in progress) — practical offensive and defensive security credentials."
+  canonical="/certifications/"
+  ogImage="/images/og-cover.png"
+>
+  <PageHeader
+    title="Certifications"
+    prefix="~/certs"
+    description="Credentials that back the hands-on work — a solid defensive baseline plus a practical penetration testing track in progress."
+  />
+
+  <div class="wrap">
+    <ol class="cert-list">
+      {CERTIFICATIONS.map((c, i) => (
+        <li class="card cert-row">
+          <div class="cert-index font-mono accent" aria-hidden="true">{String(i + 1).padStart(2, '0')}</div>
+          <div class="cert-body">
+            <div class="cert-top">
+              <h2 class="cert-name font-display">{c.name}</h2>
+              {c.status === 'earned' ? (
+                <span class="status earned font-mono">earned</span>
+              ) : (
+                <span class="status inprogress font-mono">in progress</span>
+              )}
+            </div>
+            <p class="cert-date font-mono">{c.date}</p>
+            <p class="cert-desc">{c.description}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  </div>
+</BaseLayout>
+
+<style is:global>
+  .wrap {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 0.5rem 1.25rem 4rem;
+  }
+  .cert-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+  .cert-row {
+    display: flex;
+    gap: 1.25rem;
+    padding: 1.5rem;
+  }
+  .cert-index {
+    font-size: 1.5rem;
+    font-weight: 600;
+    min-width: 2.5rem;
+    color: var(--accent-text);
+  }
+  .cert-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .cert-name { font-size: 1.25rem; margin: 0; }
+  .cert-date { color: var(--accent-text); font-size: 0.82rem; margin: 0.25rem 0 0.75rem; }
+  .cert-desc { color: var(--text-secondary); line-height: 1.65; margin: 0; }
+  .status {
+    font-size: 0.72rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .status.earned {
+    color: var(--green);
+    background: rgba(52, 168, 83, 0.12);
+  }
+  .status.inprogress {
+    color: var(--accent-text);
+    background: var(--accent-soft);
+  }
+  .accent { color: var(--accent-text); }
+  @media (max-width: 560px) {
+    .cert-row { flex-direction: column; gap: 0.5rem; }
+  }
+</style>

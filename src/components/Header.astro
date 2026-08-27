@@ -1,0 +1,116 @@
+---
+import ThemeToggle from './ThemeToggle.astro';
+
+const path = Astro.url.pathname;
+
+const links = [
+  { href: '/', label: 'Home' },
+  { href: '/certifications/', label: 'Certifications' },
+  { href: '/skills/', label: 'Skills' },
+  { href: '/projects/', label: 'Projects' },
+  { href: '/writeups/', label: 'Writeups' },
+];
+
+function isActive(href: string): boolean {
+  if (href === '/') return path === '/' || path === '';
+  return path.startsWith(href);
+}
+---
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="logo" href="/" aria-label="Feizal Said — home">
+      <span class="prompt" aria-hidden="true">$</span>
+      <span class="logo-name">feizal<span class="path">@sec</span> ~</span>
+    </a>
+
+    <nav aria-label="Primary">
+      <ul class="nav-list">
+        {links.map((l) => (
+          <li>
+            <a class:list={['nav-link', { active: isActive(l.href) }]} href={l.href} aria-current={isActive(l.href) ? 'page' : undefined}>
+              {l.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+
+    <ThemeToggle />
+  </div>
+</header>
+
+<style is:global>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--header-bg);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  .header-inner {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .logo {
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    color: var(--text);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .logo .prompt {
+    color: var(--accent);
+  }
+  .logo .path {
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+  .nav-list {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+  }
+  .nav-link {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-sm);
+    transition: color 0.2s ease, background 0.2s ease;
+  }
+  .nav-link:hover {
+    color: var(--text);
+    background: var(--bg-card-hover);
+  }
+  .nav-link.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+  @media (max-width: 640px) {
+    .header-inner {
+      gap: 0.5rem;
+    }
+    .nav-list {
+      order: 3;
+      width: 100%;
+      justify-content: center;
+    }
+    .nav-link {
+      font-size: 0.78rem;
+      padding: 0.4rem 0.55rem;
+    }
+  }
+</style>

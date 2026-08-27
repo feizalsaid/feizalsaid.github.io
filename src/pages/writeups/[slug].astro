@@ -1,0 +1,117 @@
+---
+import BaseLayout from '../../components/BaseLayout.astro';
+import { getCollection, getEntry } from 'astro:content';
+
+export async function getStaticPaths() {
+  const writeups = await getCollection('writeups', ({ data }) => data.date <= new Date());
+  return writeups.map((entry) => ({
+    params: { slug: entry.id },
+    props: { slug: entry.id },
+  }));
+}
+
+interface Props {
+  slug: string;
+}
+
+const { slug } = Astro.props;
+const entry = await getEntry({ collection: 'writeups', id: slug });
+
+const renderedHtml = entry?.rendered?.html ?? '';
+const { title, description, date, category, readTime, tags, mitre } = entry!.data;
+
+const url = `/writeups/${entry.id}/`;
+const readableDate = new Intl.DateTimeFormat('en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+}).format(date);
+
+const categoryLabel = { offensive: 'Offensive', defensive: 'Defensive', ai: 'AI Sec' }[category];
+const categoryClass = {
+  offensive: 'offensive',
+  defensive: 'defensive',
+  ai: 'ai',
+}[category];
+---
+
+<BaseLayout
+  title={title}
+  description={description || title}
+  canonical={url}
+  ogImage="/images/og-cover.png"
+>
+  <article class="writeup-article">
+    <a class="back-link font-mono" href="/writeups/">← all writeups</a>
+
+    <header class="article-head">
+      <div class="meta-row">
+        <span class:list={['cat-badge', categoryClass]}>{categoryLabel}</span>
+        <span class="meta font-mono"><time datetime={date.toISOString()}>{readableDate}</time></span>
+        <span class="meta font-mono">{readTime}</span>
+      </div>
+      <h1 class="article-title font-display">{title}</h1>
+      {description && <p class="article-desc">{description}</p>}
+      <ul class="tag-row">
+        {tags.map((t) => <li class="tag">{t}</li>)}
+        {mitre.map((m) => <li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: {m}</li>)}
+      </ul>
+    </header>
+
+    <div class="writeup-body" set:html={renderedHtml} />
+
+    <nav class="article-footer" aria-label="Writeup navigation">
+      <a class="back-link font-mono" href="/writeups/">← back to writeups</a>
+    </nav>
+  </article>
+</BaseLayout>
+
+<style is:global>
+  .writeup-article {
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 4rem;
+  }
+  .back-link {
+    color: var(--accent-text);
+    font-size: 0.85rem;
+    text-decoration: none;
+  }
+  .back-link:hover { text-decoration: underline; }
+  .article-head {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .meta-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+  .meta { color: var(--text-muted); font-size: 0.8rem; }
+  .article-title {
+    font-size: clamp(1.7rem, 4vw, 2.4rem);
+    margin: 0 0 0.75rem;
+  }
+  .article-desc {
+    color: var(--text-secondary);
+    font-size: 1.02rem;
+    line-height: 1.6;
+    margin: 0 0 1rem;
+  }
+  .tag-row {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0;
+    margin: 0;
+  }
+  .article-footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+  }
+</style>
