@@ -1,0 +1,171 @@
+<!DOCTYPE html><html lang="en" data-theme> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Building Cybersecurity Lab Environments from Scratch · Feizal Said</title><meta name="description" content="Building, managing, and tearing down custom lab environments."><!-- Theme: apply before paint to avoid FOUC --><script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          var dark = t
+            ? t === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        } catch (e) {
+          document.documentElement.setAttribute(
+            'data-theme',
+            window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          );
+        }
+      })();
+    </script><!-- Social / OG --><meta property="og:type" content="website"><meta property="og:title" content="Building Cybersecurity Lab Environments from Scratch · Feizal Said"><meta property="og:description" content="Building, managing, and tearing down custom lab environments."><meta property="og:url" content="https://feizalsaid.github.io/writeups/lab-environment-setup/"><meta property="og:image" content="https://feizalsaid.github.io/images/og-cover.png"><meta property="og:site_name" content="Feizal Said"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Building Cybersecurity Lab Environments from Scratch · Feizal Said"><meta name="twitter:description" content="Building, managing, and tearing down custom lab environments."><meta name="twitter:image" content="https://feizalsaid.github.io/images/og-cover.png"><link rel="canonical" href="https://feizalsaid.github.io/writeups/lab-environment-setup/"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><!-- Fonts --><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><!-- Structured data --><script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Feizal Said",
+        "url": {new URL('/', SITE).href},
+        "jobTitle": "Cybersecurity & Cloud Security Engineer",
+        "email": "mailto:feizalsaid9@gmail.com",
+        "sameAs": [
+          "https://github.com/feizalsaid",
+          "https://www.linkedin.com/in/feizalsaid",
+          "https://app.hackthebox.com/users/feizalsaid",
+          "https://tryhackme.com/p/feizalsaid"
+        ]
+      }
+    </script><link rel="stylesheet" href="/_astro/certifications.BR9g6oWl.css">
+<style>.writeup-article{max-width:48rem;margin:0 auto;padding:2rem 1.25rem 4rem}.back-link{color:var(--accent-text);font-size:.85rem;text-decoration:none}.back-link:hover{text-decoration:underline}.article-head{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}.meta-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem}.meta{color:var(--text-muted);font-size:.8rem}.article-title{font-size:clamp(1.7rem,4vw,2.4rem);margin:0 0 .75rem}.article-desc{color:var(--text-secondary);font-size:1.02rem;line-height:1.6;margin:0 0 1rem}.tag-row{list-style:none;display:flex;flex-wrap:wrap;gap:.5rem;padding:0;margin:0}.article-footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border)}
+</style></head> <body> <!-- Background layers --> <div class="grid-bg" aria-hidden="true"></div> <div class="glow-orb glow-orb-1" aria-hidden="true"></div> <div class="glow-orb glow-orb-2" aria-hidden="true"></div> <div class="relative z-10 flex min-h-screen flex-col"> <header class="site-header"> <div class="header-inner"> <a class="logo" href="/" aria-label="Feizal Said — home"> <span class="prompt" aria-hidden="true">$</span> <span class="logo-name">feizal<span class="path">@sec</span> ~</span> </a> <nav aria-label="Primary"> <ul class="nav-list"> <li> <a class="nav-link" href="/"> Home </a> </li><li> <a class="nav-link" href="/certifications/"> Certifications </a> </li><li> <a class="nav-link" href="/skills/"> Skills </a> </li><li> <a class="nav-link" href="/projects/"> Projects </a> </li><li> <a class="nav-link active" href="/writeups/" aria-current="page"> Writeups </a> </li> </ul> </nav> <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle color theme" data-theme-icon> <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path> </svg> <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <circle cx="12" cy="12" r="5"></circle> <line x1="12" y1="1" x2="12" y2="3"></line> <line x1="12" y1="21" x2="12" y2="23"></line> <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line> <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line> <line x1="1" y1="12" x2="3" y2="12"></line> <line x1="21" y1="12" x2="23" y2="12"></line> <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line> <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line> </svg> </button> <script type="module">const c=document.getElementById("themeToggle");c&&c.addEventListener("click",()=>{const t=document.documentElement,e=t.getAttribute("data-theme")==="dark"?"light":"dark";t.setAttribute("data-theme",e);try{localStorage.setItem("theme",e)}catch{}});</script>  </div> </header>  <main class="relative flex-1">  <article class="writeup-article"> <a class="back-link font-mono" href="/writeups/">← all writeups</a> <header class="article-head"> <div class="meta-row"> <span class="cat-badge defensive">Defensive</span> <span class="meta font-mono"><time datetime="2026-08-25T00:00:00.000Z">August 25, 2026</time></span> <span class="meta font-mono">10 min read</span> </div> <h1 class="article-title font-display">Building Cybersecurity Lab Environments from Scratch</h1> <p class="article-desc">Building, managing, and tearing down custom lab environments.</p> <ul class="tag-row"> <li class="tag">Lab Setup</li><li class="tag">VMware</li><li class="tag">Ansible</li><li class="tag">Docker</li><li class="tag">Virtualization</li><li class="tag">Homelab</li>  </ul> </header> <div class="writeup-body"><p>Every serious cybersecurity practitioner needs a lab. Not a pre-built course lab — one you design, build, and break yourself. Here’s how I set up mine.</p>
+<h2 id="why-build-your-own-labs">Why Build Your Own Labs</h2>
+<p>Pre-built labs teach you the steps. Building your own teaches you the <strong>why</strong> — networking, virtualization, OS internals, and automation. When something breaks (and it will), you learn more from debugging than from any walkthrough.</p>
+<h2 id="lab-architecture">Lab Architecture</h2>
+<p>My standard lab setup runs three nodes on a NAT network:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>┌──────────────────────────────────────────┐</span></span>
+<span class="line"><span>│              NAT Network                 │</span></span>
+<span class="line"><span>│                                          │</span></span>
+<span class="line"><span>│  ┌──────────────┐    ┌────────────────┐  │</span></span>
+<span class="line"><span>│  │ Ubuntu Server │    │  Arch Linux    │  │</span></span>
+<span class="line"><span>│  │              │    │                │  │</span></span>
+<span class="line"><span>│  │ Wazuh Manager│    │   Attacker    │  │</span></span>
+<span class="line"><span>│  │ SIEM/Dashboard│    │  (Kali tools) │  │</span></span>
+<span class="line"><span>│  │ 192.168.x.x  │    │ 192.168.x.x   │  │</span></span>
+<span class="line"><span>│  └──────────────┘    └────────────────┘  │</span></span>
+<span class="line"><span>│                                          │</span></span>
+<span class="line"><span>│         ┌────────────────┐               │</span></span>
+<span class="line"><span>│         │   Windows 11   │               │</span></span>
+<span class="line"><span>│         │                │               │</span></span>
+<span class="line"><span>│         │    Target      │               │</span></span>
+<span class="line"><span>│         │ 192.168.x.x    │               │</span></span>
+<span class="line"><span>│         └────────────────┘               │</span></span>
+<span class="line"><span>└──────────────────────────────────────────┘</span></span></code></pre>
+<ul>
+<li><strong>Ubuntu Server</strong> — Wazuh Manager, Indexer, Dashboard. Central SIEM for log collection and alerting.</li>
+<li><strong>Arch Linux</strong> — Attacking machine. Running offensive tools (Nmap, Metasploit, Burp Suite, custom scripts).</li>
+<li><strong>Windows 11</strong> — Target machine. Simulates a real enterprise endpoint with logs, services, and vulnerabilities.</li>
+</ul>
+<p>All three communicate over a NAT network — isolated from my production environment but with internet access for updates.</p>
+<h2 id="the-hypervisor-journey">The Hypervisor Journey</h2>
+<p>Not every hypervisor works well on limited hardware.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Hypervisor</th><th>Experience</th></tr></thead><tbody><tr><td><strong>VirtualBox</strong></td><td>Started here. Crashed repeatedly with multiple VMs on 8GB RAM. Unstable snapshots.</td></tr><tr><td><strong>QEMU</strong></td><td>Tried for raw performance. Config overhead was too high for quick lab spins.</td></tr><tr><td><strong>VMware</strong></td><td>Current choice. Stable, handles 3 VMs simultaneously, snapshots work reliably.</td></tr></tbody></table>
+<p>VMware Workstation Player (free for non-commercial) handles my workload without the crashes I saw with VirtualBox. Snapshots let me reset machines to a clean state after exploitation.</p>
+<h2 id="configuration-manual--automated">Configuration: Manual → Automated</h2>
+<h3 id="before-manual-setup">Before: Manual Setup</h3>
+<p>Every lab was built by hand — install OS, configure networking, install tools, harden configs. Repeat for every new lab. Tedious, error-prone, and impossible to reproduce exactly.</p>
+<h3 id="now-ansible-playbooks">Now: Ansible Playbooks</h3>
+<p>I’m transitioning to Ansible for configuration management. One playbook to:</p>
+<ul>
+<li>Configure network interfaces</li>
+<li>Install and start Wazuh agents</li>
+<li>Set up monitoring rules</li>
+<li>Deploy offensive tools on the attacker machine</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="yaml"><code><span class="line"><span style="color:#6A737D"># Example: Wazuh agent setup playbook</span></span>
+<span class="line"><span style="color:#E1E4E8">- </span><span style="color:#85E89D">name</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">Install Wazuh Agent</span></span>
+<span class="line"><span style="color:#85E89D">  hosts</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">targets</span></span>
+<span class="line"><span style="color:#85E89D">  become</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">yes</span></span>
+<span class="line"><span style="color:#85E89D">  tasks</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">    - </span><span style="color:#85E89D">name</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">Add Wazuh GPG key</span></span>
+<span class="line"><span style="color:#85E89D">      apt_key</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">        url</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">https://packages.wazuh.com/GPG-KUNWAZUH</span></span>
+<span class="line"><span style="color:#85E89D">        state</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">present</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">    - </span><span style="color:#85E89D">name</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">Install Wazuh agent</span></span>
+<span class="line"><span style="color:#85E89D">      apt</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">        name</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">wazuh-agent</span></span>
+<span class="line"><span style="color:#85E89D">        state</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">present</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">    - </span><span style="color:#85E89D">name</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">Configure manager IP</span></span>
+<span class="line"><span style="color:#85E89D">      lineinfile</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">        path</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">/var/ossec/etc/ossec.conf</span></span>
+<span class="line"><span style="color:#85E89D">        regexp</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">'&#x3C;address>.*&#x3C;/address>'</span></span>
+<span class="line"><span style="color:#85E89D">        line</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">'&#x3C;address>192.168.217.131&#x3C;/address>'</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">    - </span><span style="color:#85E89D">name</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">Start Wazuh agent</span></span>
+<span class="line"><span style="color:#85E89D">      systemd</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">        name</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">wazuh-agent</span></span>
+<span class="line"><span style="color:#85E89D">        state</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">started</span></span>
+<span class="line"><span style="color:#85E89D">        enabled</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">yes</span></span></code></pre>
+<p>Docker comes in for lightweight tools — running security scanners, log analyzers, or testing exploit code without polluting the base system.</p>
+<h2 id="terminal-workflow">Terminal Workflow</h2>
+<p>Keyboard-first navigation keeps things fast:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Shortcut</th><th>Action</th></tr></thead><tbody><tr><td><code>Ctrl+E</code></td><td>Jump to end of line</td></tr><tr><td><code>Ctrl+A</code></td><td>Jump to beginning of line</td></tr><tr><td><code>Ctrl+R</code></td><td>Search command history</td></tr><tr><td><code>Ctrl+K</code></td><td>Kill to end of line</td></tr><tr><td><code>!!</code></td><td>Repeat last command</td></tr><tr><td><code>!$</code></td><td>Use last argument</td></tr></tbody></table>
+<p>These compound — fast lab management means fast terminal navigation.</p>
+<h2 id="what-i-learned">What I Learned</h2>
+<p>Building labs from scratch teaches you things courses skip:</p>
+<ul>
+<li><strong>Networking</strong> — NAT vs bridged vs host-only. Why your VMs can’t talk to each other. DNS resolution across networks.</li>
+<li><strong>OS internals</strong> — How services start, where logs live, what “hardening” actually means.</li>
+<li><strong>Automation</strong> — If you do it twice, script it. If you script it, Ansible it.</li>
+<li><strong>Troubleshooting</strong> — When the Wazuh agent won’t connect, you learn firewall rules, port numbers, and log analysis the hard way.</li>
+</ul>
+<p>The lab is where theory meets practice. Every machine I pwn, every alert I triage, every rule I write — it all starts here.</p></div> <nav class="article-footer" aria-label="Writeup navigation"> <a class="back-link font-mono" href="/writeups/">← back to writeups</a> </nav> </article>  </main> <footer class="site-footer"> <div class="footer-inner"> <p class="footer-line"> <span class="prompt" aria-hidden="true">$</span> whoami
+<span class="dim">→ Feizal Said · Nairobi, Kenya</span> </p> <ul class="footer-links" aria-label="Social links"> <li><a href="https://github.com/feizalsaid" target="_blank" rel="noopener noreferrer">GitHub</a></li><li><a href="https://www.linkedin.com/in/feizalsaid" target="_blank" rel="noopener noreferrer">LinkedIn</a></li><li><a href="https://app.hackthebox.com/users/feizalsaid" target="_blank" rel="noopener noreferrer">Hack The Box</a></li><li><a href="https://tryhackme.com/p/feizalsaid" target="_blank" rel="noopener noreferrer">TryHackMe</a></li><li><a href="mailto:feizalsaid9@gmail.com" target="_blank" rel="noopener noreferrer">Email</a></li> </ul> <p class="copy">&copy; 2026 Feizal Said. Built with Astro.</p> </div> </footer>  </div> </body></html> 

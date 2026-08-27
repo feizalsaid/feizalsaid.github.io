@@ -1,0 +1,182 @@
+<!DOCTYPE html><html lang="en" data-theme> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Splunk Deep Dive: Detecting RDP Lateral Movement · Feizal Said</title><meta name="description" content="Production-ready Splunk searches to detect RDP lateral movement."><!-- Theme: apply before paint to avoid FOUC --><script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          var dark = t
+            ? t === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        } catch (e) {
+          document.documentElement.setAttribute(
+            'data-theme',
+            window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          );
+        }
+      })();
+    </script><!-- Social / OG --><meta property="og:type" content="website"><meta property="og:title" content="Splunk Deep Dive: Detecting RDP Lateral Movement · Feizal Said"><meta property="og:description" content="Production-ready Splunk searches to detect RDP lateral movement."><meta property="og:url" content="https://feizalsaid.github.io/writeups/splunk-rdp-lateral-02/"><meta property="og:image" content="https://feizalsaid.github.io/images/og-cover.png"><meta property="og:site_name" content="Feizal Said"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Splunk Deep Dive: Detecting RDP Lateral Movement · Feizal Said"><meta name="twitter:description" content="Production-ready Splunk searches to detect RDP lateral movement."><meta name="twitter:image" content="https://feizalsaid.github.io/images/og-cover.png"><link rel="canonical" href="https://feizalsaid.github.io/writeups/splunk-rdp-lateral-02/"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><!-- Fonts --><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><!-- Structured data --><script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Feizal Said",
+        "url": {new URL('/', SITE).href},
+        "jobTitle": "Cybersecurity & Cloud Security Engineer",
+        "email": "mailto:feizalsaid9@gmail.com",
+        "sameAs": [
+          "https://github.com/feizalsaid",
+          "https://www.linkedin.com/in/feizalsaid",
+          "https://app.hackthebox.com/users/feizalsaid",
+          "https://tryhackme.com/p/feizalsaid"
+        ]
+      }
+    </script><link rel="stylesheet" href="/_astro/certifications.BR9g6oWl.css">
+<style>.writeup-article{max-width:48rem;margin:0 auto;padding:2rem 1.25rem 4rem}.back-link{color:var(--accent-text);font-size:.85rem;text-decoration:none}.back-link:hover{text-decoration:underline}.article-head{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}.meta-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem}.meta{color:var(--text-muted);font-size:.8rem}.article-title{font-size:clamp(1.7rem,4vw,2.4rem);margin:0 0 .75rem}.article-desc{color:var(--text-secondary);font-size:1.02rem;line-height:1.6;margin:0 0 1rem}.tag-row{list-style:none;display:flex;flex-wrap:wrap;gap:.5rem;padding:0;margin:0}.article-footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border)}
+</style></head> <body> <!-- Background layers --> <div class="grid-bg" aria-hidden="true"></div> <div class="glow-orb glow-orb-1" aria-hidden="true"></div> <div class="glow-orb glow-orb-2" aria-hidden="true"></div> <div class="relative z-10 flex min-h-screen flex-col"> <header class="site-header"> <div class="header-inner"> <a class="logo" href="/" aria-label="Feizal Said — home"> <span class="prompt" aria-hidden="true">$</span> <span class="logo-name">feizal<span class="path">@sec</span> ~</span> </a> <nav aria-label="Primary"> <ul class="nav-list"> <li> <a class="nav-link" href="/"> Home </a> </li><li> <a class="nav-link" href="/certifications/"> Certifications </a> </li><li> <a class="nav-link" href="/skills/"> Skills </a> </li><li> <a class="nav-link" href="/projects/"> Projects </a> </li><li> <a class="nav-link active" href="/writeups/" aria-current="page"> Writeups </a> </li> </ul> </nav> <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle color theme" data-theme-icon> <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path> </svg> <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <circle cx="12" cy="12" r="5"></circle> <line x1="12" y1="1" x2="12" y2="3"></line> <line x1="12" y1="21" x2="12" y2="23"></line> <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line> <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line> <line x1="1" y1="12" x2="3" y2="12"></line> <line x1="21" y1="12" x2="23" y2="12"></line> <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line> <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line> </svg> </button> <script type="module">const c=document.getElementById("themeToggle");c&&c.addEventListener("click",()=>{const t=document.documentElement,e=t.getAttribute("data-theme")==="dark"?"light":"dark";t.setAttribute("data-theme",e);try{localStorage.setItem("theme",e)}catch{}});</script>  </div> </header>  <main class="relative flex-1">  <article class="writeup-article"> <a class="back-link font-mono" href="/writeups/">← all writeups</a> <header class="article-head"> <div class="meta-row"> <span class="cat-badge defensive">Defensive</span> <span class="meta font-mono"><time datetime="2025-02-01T00:00:00.000Z">February 1, 2025</time></span> <span class="meta font-mono">15 min read</span> </div> <h1 class="article-title font-display">Splunk Deep Dive: Detecting RDP Lateral Movement</h1> <p class="article-desc">Production-ready Splunk searches to detect RDP lateral movement.</p> <ul class="tag-row"> <li class="tag">Splunk</li><li class="tag">Lateral Movement</li><li class="tag">Detection</li><li class="tag">SIEM</li><li class="tag">RDP</li><li class="tag">Blue Team</li> <li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1021.001</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1078</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1110</li> </ul> </header> <div class="writeup-body"><p>This guide covers how to detect RDP-based lateral movement using Splunk, incorporating techniques from real-world detection engineering.</p>
+<h2 id="why-monitor-rdp">Why Monitor RDP?</h2>
+<p>Remote Desktop Protocol (RDP) is the #1 tool for attackers moving laterally after gaining initial access. While RDP is essential for system administration, attackers abuse it to:</p>
+<ul>
+<li>Pivot from compromised workstations to high-value servers</li>
+<li>Maintain persistence through interactive access</li>
+<li>Blend in with legitimate administrative traffic</li>
+</ul>
+<h2 id="event-logs-you-must-collect">Event Logs You MUST Collect</h2>
+<p>Before detection works, ensure these Windows logs are forwarded to Splunk:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Log Name</th><th>Source</th><th>Why It Matters</th></tr></thead><tbody><tr><td><code>Microsoft-Windows-TerminalServices-LocalSessionManager/Operational</code></td><td>Event ID 21</td><td>RDP session logons/logoffs</td></tr><tr><td><code>Microsoft-Windows-TerminalServices-RDPClient/Operational</code></td><td>Event ID 1024</td><td>RDP connections INITIATED from a host (lateral movement source)</td></tr><tr><td><code>Microsoft-Windows-TerminalServices-RemoteConnectionManager/Operational</code></td><td>Event ID 1149</td><td>Successful incoming RDP connections</td></tr><tr><td><code>Security</code></td><td>Event ID 4624 (Logon Type 10)</td><td>Successful RDP logon authentication</td></tr></tbody></table>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>Detection Flow:</span></span>
+<span class="line"><span></span></span>
+<span class="line"><span>  Attacker                  Compromised Host              Target Server</span></span>
+<span class="line"><span>     │                            │                            │</span></span>
+<span class="line"><span>     │──── Initial Access ────────►│                            │</span></span>
+<span class="line"><span>     │                            │                            │</span></span>
+<span class="line"><span>     │                            │─── RDP (Event 1024) ──────►│</span></span>
+<span class="line"><span>     │                            │    (Outgoing detection)     │</span></span>
+<span class="line"><span>     │                            │                            │</span></span>
+<span class="line"><span>     │                            │◄── Event 1149 ─────────────│</span></span>
+<span class="line"><span>     │                            │    (Incoming detection)     │</span></span>
+<span class="line"><span>     │                            │                            │</span></span>
+<span class="line"><span>     │                            │◄── Event 4624 Type 10 ─────│</span></span>
+<span class="line"><span>     │                            │    (Auth detection)         │</span></span>
+<span class="line"><span>                                  │                            │</span></span>
+<span class="line"><span>                         Splunk collects all three event types</span></span></code></pre>
+<h2 id="detection-1-successful-rdp-connections-incoming">Detection 1: Successful RDP Connections (Incoming)</h2>
+<p>This detects when someone successfully RDPs INTO a system.</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="spl"><code><span class="line"><span style="color:#FFAB70">index</span><span style="color:#F97583">=</span><span style="color:#E1E4E8">windows </span><span style="color:#FFAB70">sourcetype</span><span style="color:#F97583">=</span><span style="color:#9ECBFF">"WinEventLog:Microsoft-Windows-TerminalServices-RemoteConnectionManager/Operational"</span><span style="color:#FFAB70"> EventCode</span><span style="color:#F97583">=</span><span style="color:#79B8FF">1149</span></span>
+<span class="line"><span style="color:#E1E4E8">|</span><span style="color:#79B8FF"> rex</span><span style="color:#9ECBFF"> "User \"(?&#x3C;user>[^\"]+)\" logged on from client \"(?&#x3C;src_host>[^\"]+)\""</span></span>
+<span class="line"><span style="color:#E1E4E8">|</span><span style="color:#79B8FF"> table</span><span style="color:#E1E4E8"> _time,</span><span style="color:#FFAB70"> user</span><span style="color:#E1E4E8">,</span><span style="color:#FFAB70"> src_host</span><span style="color:#E1E4E8">, host</span></span>
+<span class="line"><span style="color:#E1E4E8">|</span><span style="color:#79B8FF"> sort</span><span style="color:#E1E4E8"> - _time</span></span></code></pre>
+<p>What this catches: Every successful RDP logon, including the source hostname.</p>
+<h2 id="detection-2-rdp-connections-initiated-from-a-host-outgoing">Detection 2: RDP Connections Initiated from a Host (Outgoing)</h2>
+<p>This detects when a system STARTS an RDP connection to somewhere else — critical for finding the source of lateral movement.</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="spl"><code><span class="line"><span style="color:#FFAB70">index</span><span style="color:#F97583">=</span><span style="color:#E1E4E8">windows </span><span style="color:#FFAB70">sourcetype</span><span style="color:#F97583">=</span><span style="color:#9ECBFF">"WinEventLog:Microsoft-Windows-TerminalServices-RDPClient/Operational"</span><span style="color:#FFAB70"> EventCode</span><span style="color:#F97583">=</span><span style="color:#79B8FF">1024</span></span>
+<span class="line"><span style="color:#E1E4E8">|</span><span style="color:#79B8FF"> rename</span><span style="color:#E1E4E8"> host </span><span style="color:#79B8FF">as</span><span style="color:#E1E4E8"> source_host</span></span>
+<span class="line"><span style="color:#E1E4E8">|</span><span style="color:#79B8FF"> rex</span><span style="color:#9ECBFF"> "Remote Desktop Connection: (.+)\""</span></span>
+<span class="line"><span style="color:#E1E4E8">|</span><span style="color:#79B8FF"> table</span><span style="color:#E1E4E8"> _time,</span><span style="color:#FFAB70"> source_host</span><span style="color:#E1E4E8">,</span><span style="color:#FFAB70"> user</span><span style="color:#E1E4E8">, _raw</span></span></code></pre>
+<p>This is your lateral movement source identifier.</p>
+<h2 id="detection-3-rdp-logon-type-10-authentication">Detection 3: RDP Logon Type 10 (Authentication)</h2>
+<p>Standard Security log detection for RDP authentication events.</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="spl"><code><span class="line"><span style="color:#FFAB70">index</span><span style="color:#F97583">=</span><span style="color:#E1E4E8">windows </span><span style="color:#FFAB70">sourcetype</span><span style="color:#F97583">=</span><span style="color:#9ECBFF">"WinEventLog"</span><span style="color:#FFAB70"> EventCode</span><span style="color:#F97583">=</span><span style="color:#79B8FF">4624</span><span style="color:#FFAB70"> LogonType</span><span style="color:#F97583">=</span><span style="color:#79B8FF">10</span></span>
+<span class="line"><span style="color:#E1E4E8">|</span><span style="color:#79B8FF"> stats</span><span style="color:#79B8FF"> count</span><span style="color:#79B8FF"> by</span><span style="color:#E1E4E8"> src_ip,</span><span style="color:#FFAB70"> host</span><span style="color:#E1E4E8">, user</span></span>
+<span class="line"><span style="color:#E1E4E8">|</span><span style="color:#79B8FF"> sort</span><span style="color:#E1E4E8"> - </span><span style="color:#79B8FF">count</span></span></code></pre>
+<h2 id="detection-4-rdp-brute-force-detection">Detection 4: RDP Brute Force Detection</h2>
+<p>Attackers often spray passwords against RDP. This identifies multiple failed logons followed by a success.</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="spl"><code><span class="line"><span style="color:#FFAB70">index</span><span style="color:#F97583">=</span><span style="color:#E1E4E8">windows </span><span style="color:#FFAB70">sourcetype</span><span style="color:#F97583">=</span><span style="color:#9ECBFF">"WinEventLog"</span><span style="color:#E1E4E8"> (</span><span style="color:#FFAB70">EventCode</span><span style="color:#F97583">=</span><span style="color:#79B8FF">4625</span><span style="color:#79B8FF"> OR</span><span style="color:#FFAB70"> EventCode</span><span style="color:#F97583">=</span><span style="color:#79B8FF">4624</span><span style="color:#E1E4E8">) </span><span style="color:#FFAB70">LogonType</span><span style="color:#F97583">=</span><span style="color:#79B8FF">10</span></span>
+<span class="line"><span style="color:#E1E4E8">|</span><span style="color:#79B8FF"> eval</span><span style="color:#FFAB70"> outcome </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> if</span><span style="color:#E1E4E8">(</span><span style="color:#FFAB70">EventCode</span><span style="color:#F97583">=</span><span style="color:#79B8FF">4625</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"failed"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"success"</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#E1E4E8">|</span><span style="color:#79B8FF"> stats</span><span style="color:#79B8FF"> count</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">eval</span><span style="color:#E1E4E8">(</span><span style="color:#FFAB70">outcome</span><span style="color:#F97583">=</span><span style="color:#9ECBFF">"failed"</span><span style="color:#E1E4E8">)) </span><span style="color:#79B8FF">as</span><span style="color:#E1E4E8"> failed_attempts, </span><span style="color:#79B8FF">count</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">eval</span><span style="color:#E1E4E8">(</span><span style="color:#FFAB70">outcome</span><span style="color:#F97583">=</span><span style="color:#9ECBFF">"success"</span><span style="color:#E1E4E8">)) </span><span style="color:#79B8FF">as</span><span style="color:#E1E4E8"> success_attempts, </span><span style="color:#79B8FF">values</span><span style="color:#E1E4E8">(</span><span style="color:#FFAB70">src_ip</span><span style="color:#E1E4E8">) </span><span style="color:#79B8FF">as</span><span style="color:#E1E4E8"> src_ips </span><span style="color:#79B8FF">by</span><span style="color:#E1E4E8"> host, user</span></span>
+<span class="line"><span style="color:#E1E4E8">|</span><span style="color:#79B8FF"> where</span><span style="color:#E1E4E8"> failed_attempts > </span><span style="color:#79B8FF">5</span><span style="color:#79B8FF"> AND</span><span style="color:#E1E4E8"> success_attempts > </span><span style="color:#79B8FF">0</span></span></code></pre>
+<p>Use case: Identify successful brute force attacks.</p>
+<h2 id="detection-5-rdp-from-unusual-source-peer-group-analysis">Detection 5: RDP from Unusual Source (Peer Group Analysis)</h2>
+<p>This Splunk Enterprise Security (ES) correlation finds RDP logins from source IPs that a user has never used before.</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="spl"><code><span class="line"><span style="color:#E1E4E8">|</span><span style="color:#79B8FF"> tstats</span><span style="color:#E1E4E8"> `</span><span style="color:#B392F0">security_content_summariesonly</span><span style="color:#E1E4E8">` </span><span style="color:#79B8FF">min</span><span style="color:#E1E4E8">(</span><span style="color:#FFAB70">_time</span><span style="color:#E1E4E8">) </span><span style="color:#79B8FF">as</span><span style="color:#E1E4E8"> firstTime </span><span style="color:#79B8FF">max</span><span style="color:#E1E4E8">(</span><span style="color:#FFAB70">_time</span><span style="color:#E1E4E8">) </span><span style="color:#79B8FF">as</span><span style="color:#E1E4E8"> lastTime from </span><span style="color:#FFAB70">datamodel</span><span style="color:#F97583">=</span><span style="color:#E1E4E8">Authentication.Authentication </span><span style="color:#79B8FF">where</span><span style="color:#FFAB70"> Authentication.authentication_type</span><span style="color:#F97583">=</span><span style="color:#9ECBFF">"RDP"</span><span style="color:#79B8FF"> by</span><span style="color:#E1E4E8"> Authentication.src,</span><span style="color:#FFAB70"> Authentication.user</span><span style="color:#E1E4E8">, Authentication.dest</span></span>
+<span class="line"><span style="color:#E1E4E8">| `</span><span style="color:#B392F0">drop_dm_object_name</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Authentication"</span><span style="color:#E1E4E8">)`</span></span>
+<span class="line"><span style="color:#E1E4E8">|</span><span style="color:#79B8FF"> eventstats</span><span style="color:#79B8FF"> values</span><span style="color:#E1E4E8">(</span><span style="color:#FFAB70">src</span><span style="color:#E1E4E8">) </span><span style="color:#79B8FF">as</span><span style="color:#E1E4E8"> peer_src </span><span style="color:#79B8FF">by</span><span style="color:#E1E4E8"> user</span></span>
+<span class="line"><span style="color:#E1E4E8">|</span><span style="color:#79B8FF"> where</span><span style="color:#79B8FF"> NOT</span><span style="color:#E1E4E8"> mvmap(</span><span style="color:#FFAB70">peer_src</span><span style="color:#E1E4E8">,</span><span style="color:#FFAB70"> src</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> src</span></span></code></pre>
+<p>Why this works: Attackers almost never RDP from a “normal” workstation for that user.</p>
+<h2 id="rdp-artifacts-forensic-evidence">RDP Artifacts: Forensic Evidence</h2>
+<p>Even if attackers clear logs, RDP leaves files. Monitor the Terminal Server Client cache for forensic evidence of RDP usage:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="spl"><code><span class="line"><span style="color:#FFAB70">index</span><span style="color:#F97583">=</span><span style="color:#E1E4E8">windows </span><span style="color:#FFAB70">sourcetype</span><span style="color:#F97583">=</span><span style="color:#9ECBFF">"WinEventLog"</span><span style="color:#FFAB70"> file_path</span><span style="color:#F97583">=</span><span style="color:#9ECBFF">"*\\Terminal Server Client\\Cache\\*.bmc"</span></span>
+<span class="line"><span style="color:#E1E4E8">|</span><span style="color:#79B8FF"> stats</span><span style="color:#79B8FF"> count</span><span style="color:#79B8FF"> by</span><span style="color:#E1E4E8"> dest,</span><span style="color:#FFAB70"> user</span><span style="color:#E1E4E8">, file_path</span></span></code></pre>
+<p>RDP bitmap cache files (*.bmc) are created whenever a user initiates an RDP session.</p>
+<h2 id="mitre-attck-mapping">MITRE ATT&#x26;CK Mapping</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tactic</th><th>Technique ID</th><th>Technique Name</th></tr></thead><tbody><tr><td>Lateral Movement</td><td>T1021.001</td><td>Remote Desktop Protocol</td></tr><tr><td>Lateral Movement</td><td>T1563.002</td><td>RDP Hijacking</td></tr></tbody></table>
+<h2 id="risk-based-alerting-rba">Risk-Based Alerting (RBA)</h2>
+<p>In Splunk ES, configure this correlation search with:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Setting</th><th>Value</th></tr></thead><tbody><tr><td>Risk Object</td><td>system</td></tr><tr><td>Risk Score</td><td>35</td></tr><tr><td>Risk Severity</td><td>Medium</td></tr></tbody></table>
+<h2 id="false-positive-tuning">False Positive Tuning</h2>
+<p>Legitimate RDP activity will trigger these. Reduce noise by:</p>
+<ul>
+<li><strong>Exclude jump boxes:</strong> Add <code>NOT src IN ("jump-host-01", "admin-workstation-02")</code></li>
+<li><strong>Baseline normal behavior:</strong> Track average RDP connections per user</li>
+<li><strong>Time-based filtering:</strong> Alert only on off-hours RDP (e.g., 8 PM - 6 AM)</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="spl"><code><span class="line"><span style="color:#E1E4E8">|</span><span style="color:#79B8FF"> where</span><span style="color:#79B8FF"> searchmatch</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"NOT (src=jump-* OR src=admin-*)"</span><span style="color:#E1E4E8">)</span></span></code></pre></div> <nav class="article-footer" aria-label="Writeup navigation"> <a class="back-link font-mono" href="/writeups/">← back to writeups</a> </nav> </article>  </main> <footer class="site-footer"> <div class="footer-inner"> <p class="footer-line"> <span class="prompt" aria-hidden="true">$</span> whoami
+<span class="dim">→ Feizal Said · Nairobi, Kenya</span> </p> <ul class="footer-links" aria-label="Social links"> <li><a href="https://github.com/feizalsaid" target="_blank" rel="noopener noreferrer">GitHub</a></li><li><a href="https://www.linkedin.com/in/feizalsaid" target="_blank" rel="noopener noreferrer">LinkedIn</a></li><li><a href="https://app.hackthebox.com/users/feizalsaid" target="_blank" rel="noopener noreferrer">Hack The Box</a></li><li><a href="https://tryhackme.com/p/feizalsaid" target="_blank" rel="noopener noreferrer">TryHackMe</a></li><li><a href="mailto:feizalsaid9@gmail.com" target="_blank" rel="noopener noreferrer">Email</a></li> </ul> <p class="copy">&copy; 2026 Feizal Said. Built with Astro.</p> </div> </footer>  </div> </body></html> 

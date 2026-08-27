@@ -1,0 +1,216 @@
+<!DOCTYPE html><html lang="en" data-theme> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>OverTheWire: Bandit Levels 0 to 20 Walkthrough · Feizal Said</title><meta name="description" content="Complete walkthrough of Bandit levels 0-20."><!-- Theme: apply before paint to avoid FOUC --><script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          var dark = t
+            ? t === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        } catch (e) {
+          document.documentElement.setAttribute(
+            'data-theme',
+            window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          );
+        }
+      })();
+    </script><!-- Social / OG --><meta property="og:type" content="website"><meta property="og:title" content="OverTheWire: Bandit Levels 0 to 20 Walkthrough · Feizal Said"><meta property="og:description" content="Complete walkthrough of Bandit levels 0-20."><meta property="og:url" content="https://feizalsaid.github.io/writeups/overthewire-bandit-0-20/"><meta property="og:image" content="https://feizalsaid.github.io/images/og-cover.png"><meta property="og:site_name" content="Feizal Said"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="OverTheWire: Bandit Levels 0 to 20 Walkthrough · Feizal Said"><meta name="twitter:description" content="Complete walkthrough of Bandit levels 0-20."><meta name="twitter:image" content="https://feizalsaid.github.io/images/og-cover.png"><link rel="canonical" href="https://feizalsaid.github.io/writeups/overthewire-bandit-0-20/"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><!-- Fonts --><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><!-- Structured data --><script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Feizal Said",
+        "url": {new URL('/', SITE).href},
+        "jobTitle": "Cybersecurity & Cloud Security Engineer",
+        "email": "mailto:feizalsaid9@gmail.com",
+        "sameAs": [
+          "https://github.com/feizalsaid",
+          "https://www.linkedin.com/in/feizalsaid",
+          "https://app.hackthebox.com/users/feizalsaid",
+          "https://tryhackme.com/p/feizalsaid"
+        ]
+      }
+    </script><link rel="stylesheet" href="/_astro/certifications.BR9g6oWl.css">
+<style>.writeup-article{max-width:48rem;margin:0 auto;padding:2rem 1.25rem 4rem}.back-link{color:var(--accent-text);font-size:.85rem;text-decoration:none}.back-link:hover{text-decoration:underline}.article-head{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}.meta-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem}.meta{color:var(--text-muted);font-size:.8rem}.article-title{font-size:clamp(1.7rem,4vw,2.4rem);margin:0 0 .75rem}.article-desc{color:var(--text-secondary);font-size:1.02rem;line-height:1.6;margin:0 0 1rem}.tag-row{list-style:none;display:flex;flex-wrap:wrap;gap:.5rem;padding:0;margin:0}.article-footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border)}
+</style></head> <body> <!-- Background layers --> <div class="grid-bg" aria-hidden="true"></div> <div class="glow-orb glow-orb-1" aria-hidden="true"></div> <div class="glow-orb glow-orb-2" aria-hidden="true"></div> <div class="relative z-10 flex min-h-screen flex-col"> <header class="site-header"> <div class="header-inner"> <a class="logo" href="/" aria-label="Feizal Said — home"> <span class="prompt" aria-hidden="true">$</span> <span class="logo-name">feizal<span class="path">@sec</span> ~</span> </a> <nav aria-label="Primary"> <ul class="nav-list"> <li> <a class="nav-link" href="/"> Home </a> </li><li> <a class="nav-link" href="/certifications/"> Certifications </a> </li><li> <a class="nav-link" href="/skills/"> Skills </a> </li><li> <a class="nav-link" href="/projects/"> Projects </a> </li><li> <a class="nav-link active" href="/writeups/" aria-current="page"> Writeups </a> </li> </ul> </nav> <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle color theme" data-theme-icon> <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path> </svg> <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <circle cx="12" cy="12" r="5"></circle> <line x1="12" y1="1" x2="12" y2="3"></line> <line x1="12" y1="21" x2="12" y2="23"></line> <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line> <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line> <line x1="1" y1="12" x2="3" y2="12"></line> <line x1="21" y1="12" x2="23" y2="12"></line> <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line> <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line> </svg> </button> <script type="module">const c=document.getElementById("themeToggle");c&&c.addEventListener("click",()=>{const t=document.documentElement,e=t.getAttribute("data-theme")==="dark"?"light":"dark";t.setAttribute("data-theme",e);try{localStorage.setItem("theme",e)}catch{}});</script>  </div> </header>  <main class="relative flex-1">  <article class="writeup-article"> <a class="back-link font-mono" href="/writeups/">← all writeups</a> <header class="article-head"> <div class="meta-row"> <span class="cat-badge offensive">Offensive</span> <span class="meta font-mono"><time datetime="2025-01-20T00:00:00.000Z">January 20, 2025</time></span> <span class="meta font-mono">25 min read</span> </div> <h1 class="article-title font-display">OverTheWire: Bandit Levels 0 to 20 Walkthrough</h1> <p class="article-desc">Complete walkthrough of Bandit levels 0-20.</p> <ul class="tag-row"> <li class="tag">Linux</li><li class="tag">CTF</li><li class="tag">Privilege Escalation</li><li class="tag">SSH</li><li class="tag">OverTheWire</li>  </ul> </header> <div class="writeup-body"><p>Bandit is an essential capture-the-flag (CTF) wargame hosted by OverTheWire. It is designed to build a practical understanding of the Linux command line, file manipulation, pipeline text processing, and basic administrative security concepts.</p>
+<p>This comprehensive writeup breaks down the methodologies used to solve Levels 0 through 20.</p>
+<hr>
+<h2 id="host-connection-details">Host Connection Details</h2>
+<ul>
+<li><strong>Host:</strong> <code>bandit.labs.overthewire.org</code></li>
+<li><strong>Port:</strong> <code>2220</code></li>
+</ul>
+<hr>
+<h2 id="level-0">Level 0</h2>
+<p><strong>Objective:</strong> Log into the game server using SSH.</p>
+<ul>
+<li><strong>Username:</strong> <code>bandit0</code></li>
+<li><strong>Password:</strong> <code>bandit0</code></li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">ssh</span><span style="color:#9ECBFF"> bandit0@bandit.labs.overthewire.org</span><span style="color:#79B8FF"> -p</span><span style="color:#79B8FF"> 2220</span></span></code></pre>
+<hr>
+<h2 id="level-0--1">Level 0 → 1</h2>
+<p><strong>Objective:</strong> Find the password for the next level stored in a file named <code>README</code> in the home directory.</p>
+<ul>
+<li><strong>Methodology:</strong> Use <code>ls</code> to locate the target and <code>cat</code> to read its contents.</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">ls</span></span>
+<span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> README</span></span></code></pre>
+<ul>
+<li><strong>Flag discovered:</strong> <code>boJ9jbbUNNfktd78OOpsqOltutMc3MY1</code></li>
+</ul>
+<hr>
+<h2 id="level-1--2">Level 1 → 2</h2>
+<p><strong>Objective:</strong> Find the password inside a file named <code>-</code> located in the home directory.</p>
+<ul>
+<li><strong>Methodology:</strong> A single dash <code>-</code> represents standard input/output in many Linux utilities. To force <code>cat</code> to read it as a specific filename, pass an explicit relative path <code>./-</code>.</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> ./-</span></span></code></pre>
+<hr>
+<h2 id="level-2--3">Level 2 → 3</h2>
+<p><strong>Objective:</strong> Find the password inside a file named <code>spaces in this filename</code>.</p>
+<ul>
+<li><strong>Methodology:</strong> Use double quotes or backslash escaping to pass filenames containing whitespace characters as a single operational parameter.</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> "spaces in this filename"</span></span></code></pre>
+<hr>
+<h2 id="level-3--4">Level 3 → 4</h2>
+<p><strong>Objective:</strong> Access a hidden file stored inside the <code>inhere</code> directory.</p>
+<ul>
+<li><strong>Methodology:</strong> Move into the folder using <code>cd</code> and pass the <code>-la</code> flags to <code>ls</code> to view hidden files prefixed with a dot (<code>.</code>).</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#79B8FF">cd</span><span style="color:#9ECBFF"> inhere</span></span>
+<span class="line"><span style="color:#B392F0">ls</span><span style="color:#79B8FF"> -la</span></span>
+<span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> .hidden</span></span></code></pre>
+<hr>
+<h2 id="level-4--5">Level 4 → 5</h2>
+<p><strong>Objective:</strong> Locate the only human-readable file inside the <code>inhere</code> directory among multiple corrupted or binary assets.</p>
+<ul>
+<li><strong>Methodology:</strong> Examine files to locate standard ASCII strings. Checking text types identifies <code>./-file07</code> as the destination.</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#79B8FF">cd</span><span style="color:#9ECBFF"> inhere</span></span>
+<span class="line"><span style="color:#B392F0">ls</span></span>
+<span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> ./-file07</span></span></code></pre>
+<hr>
+<h2 id="level-5--6">Level 5 → 6</h2>
+<p><strong>Objective:</strong> Find a file under the <code>inhere</code> directory that matches three specific properties: human-readable, 1033 bytes in size, and not executable.</p>
+<ul>
+<li><strong>Methodology:</strong> Use the <code>find</code> utility with criteria constraints for size (<code>1033c</code>) and permissions (<code>! -executable</code>).</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#79B8FF">cd</span><span style="color:#9ECBFF"> inhere</span></span>
+<span class="line"><span style="color:#B392F0">find</span><span style="color:#9ECBFF"> .</span><span style="color:#79B8FF"> -size</span><span style="color:#9ECBFF"> 1033c</span><span style="color:#9ECBFF"> !</span><span style="color:#79B8FF"> -executable</span></span>
+<span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> ./maybehere07/.file2</span></span></code></pre>
+<hr>
+<h2 id="level-6--7">Level 6 → 7</h2>
+<p><strong>Objective:</strong> Find a file hidden somewhere on the entire server belonging to user <code>bandit7</code>, group <code>bandit6</code>, and exactly 33 bytes in size.</p>
+<ul>
+<li><strong>Methodology:</strong> Execute a root-level <code>find</code> query. Redirect permission warning noise (<code>Permission denied</code>) using <code>2>/dev/null</code> to keep the console clean.</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">find</span><span style="color:#9ECBFF"> /</span><span style="color:#79B8FF"> -type</span><span style="color:#9ECBFF"> f</span><span style="color:#79B8FF"> -user</span><span style="color:#9ECBFF"> bandit7</span><span style="color:#79B8FF"> -group</span><span style="color:#9ECBFF"> bandit6</span><span style="color:#79B8FF"> -size</span><span style="color:#9ECBFF"> 33c</span><span style="color:#F97583"> 2></span><span style="color:#9ECBFF">/dev/null</span></span>
+<span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> /var/lib/dpkg/info/bandit7.password</span></span></code></pre>
+<hr>
+<h2 id="level-7--8">Level 7 → 8</h2>
+<p><strong>Objective:</strong> Retrieve the password stored within <code>data.txt</code> next to the word “millionth”.</p>
+<ul>
+<li><strong>Methodology:</strong> Pipe the data block directly into <code>grep</code> to extract the corresponding target string.</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> data.txt</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> grep</span><span style="color:#9ECBFF"> "millionth"</span></span></code></pre>
+<hr>
+<h2 id="level-8--9">Level 8 → 9</h2>
+<p><strong>Objective:</strong> Find the single line of text in <code>data.txt</code> that occurs exactly once.</p>
+<ul>
+<li><strong>Methodology:</strong> The <code>uniq</code> command requires sorted adjacent lines to filter effectively. Sort the document stream and isolate unique entities with <code>uniq -u</code>.</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> data.txt</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> sort</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> uniq</span><span style="color:#79B8FF"> -u</span></span></code></pre>
+<hr>
+<h2 id="level-9--10">Level 9 → 10</h2>
+<p><strong>Objective:</strong> Extract human-readable strings from <code>data.txt</code> preceded by several <code>=</code> characters.</p>
+<ul>
+<li><strong>Methodology:</strong> Search for explicit string formatting patterns using a simple syntax filter match.</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> data.txt</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> grep</span><span style="color:#9ECBFF"> "="</span></span></code></pre>
+<hr>
+<h2 id="level-10--11">Level 10 → 11</h2>
+<p><strong>Objective:</strong> Decode the file <code>data.txt</code>, which contains base64 encoded data.</p>
+<ul>
+<li><strong>Methodology:</strong> Use the system binary tool with the decode flag to process the content.</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">base64</span><span style="color:#79B8FF"> -d</span><span style="color:#9ECBFF"> data.txt</span></span></code></pre>
+<hr>
+<h2 id="level-11--12">Level 11 → 12</h2>
+<p><strong>Objective:</strong> Decode <code>data.txt</code>, which has been obfuscated using a ROT13 cipher (rotated by 13 positions).</p>
+<ul>
+<li><strong>Methodology:</strong> Map both uppercase and lowercase character sets using the string translation utility <code>tr</code>.</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> data.txt</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> tr</span><span style="color:#9ECBFF"> 'A-Za-z'</span><span style="color:#9ECBFF"> 'N-ZA-Mn-za-m'</span></span></code></pre>
+<hr>
+<h2 id="level-12--13">Level 12 → 13</h2>
+<p><strong>Objective:</strong> Decompress a heavily nested, multi-compressed hex dump file.</p>
+<ul>
+<li><strong>Methodology:</strong> Work in a workspace subfolder under <code>/tmp</code>. Reverse the hex dump with <code>xxd -r</code>, determine file signatures iteratively with <code>file</code>, and recursively strip layers using <code>gunzip</code>, <code>bzip2</code>, and <code>tar</code>.</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">mkdir</span><span style="color:#9ECBFF"> /tmp/workspace</span></span>
+<span class="line"><span style="color:#B392F0">cp</span><span style="color:#9ECBFF"> data.txt</span><span style="color:#9ECBFF"> /tmp/workspace</span></span>
+<span class="line"><span style="color:#79B8FF">cd</span><span style="color:#9ECBFF"> /tmp/workspace</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">xxd</span><span style="color:#79B8FF"> -r</span><span style="color:#9ECBFF"> data.txt</span><span style="color:#F97583"> ></span><span style="color:#9ECBFF"> bandit</span></span>
+<span class="line"><span style="color:#B392F0">file</span><span style="color:#9ECBFF"> bandit</span></span>
+<span class="line"><span style="color:#B392F0">mv</span><span style="color:#9ECBFF"> bandit</span><span style="color:#9ECBFF"> bandit.gz</span></span>
+<span class="line"><span style="color:#B392F0">gunzip</span><span style="color:#9ECBFF"> bandit.gz</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D"># Repeat decompression layers based on 'file' output:</span></span>
+<span class="line"><span style="color:#B392F0">bzip2</span><span style="color:#79B8FF"> -d</span><span style="color:#9ECBFF"> bandit</span></span>
+<span class="line"><span style="color:#B392F0">tar</span><span style="color:#9ECBFF"> xvf</span><span style="color:#9ECBFF"> bandit.out</span></span>
+<span class="line"><span style="color:#6A737D"># (Continue process until flat ASCII flag appears)</span></span>
+<span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> data8</span></span></code></pre>
+<hr>
+<h2 id="level-13--14">Level 13 → 14</h2>
+<p><strong>Objective:</strong> Log into the next account using an SSH private key stored in <code>sshkey.private</code>.</p>
+<ul>
+<li><strong>Methodology:</strong> Use the identity flag input <code>-i</code> on SSH. To fix permission warning errors, restrict key read properties using <code>chmod</code>.</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">ssh</span><span style="color:#9ECBFF"> bandit14@localhost</span><span style="color:#79B8FF"> -p</span><span style="color:#79B8FF"> 2220</span><span style="color:#79B8FF"> -i</span><span style="color:#9ECBFF"> sshkey.private</span></span></code></pre>
+<hr>
+<h2 id="level-14--15">Level 14 → 15</h2>
+<p><strong>Objective:</strong> Submit the current level’s password to port 30000 on localhost to unlock the next flag.</p>
+<ul>
+<li><strong>Methodology:</strong> Retrieve the raw baseline password from <code>/etc/bandit_pass/bandit14</code> and establish a direct network link using <code>nc</code> (Netcat).</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> /etc/bandit_pass/bandit14</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> nc</span><span style="color:#9ECBFF"> localhost</span><span style="color:#79B8FF"> 30000</span></span></code></pre>
+<hr>
+<h2 id="level-15--16">Level 15 → 16</h2>
+<p><strong>Objective:</strong> Submit the current password to port 30001 on localhost using secure SSL/TLS encryption.</p>
+<ul>
+<li><strong>Methodology:</strong> Use the built-in OpenSSL connection engine helper instead of basic text Netcat.</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">openssl</span><span style="color:#9ECBFF"> s_client</span><span style="color:#79B8FF"> -connect</span><span style="color:#9ECBFF"> localhost:30001</span><span style="color:#79B8FF"> -quiet</span><span style="color:#F97583"> &#x3C;</span><span style="color:#9ECBFF"> /etc/bandit_pass/bandit15</span></span></code></pre>
+<hr>
+<h2 id="level-16--17">Level 16 → 17</h2>
+<p><strong>Objective:</strong> Scan ports between 31000 and 32000 on localhost to discover active listeners, identify the SSL service, and submit the password to extract a private key.</p>
+<ul>
+<li><strong>Methodology:</strong> Run an explicit network reconnaissance trace with <code>nmap</code>. Establish a secure OpenSSL stream to the credential engine port to download the private key asset.</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">nmap</span><span style="color:#79B8FF"> -p</span><span style="color:#9ECBFF"> 31000-32000</span><span style="color:#9ECBFF"> localhost</span></span>
+<span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> /etc/bandit_pass/bandit16</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> openssl</span><span style="color:#9ECBFF"> s_client</span><span style="color:#79B8FF"> -connect</span><span style="color:#9ECBFF"> localhost:31790</span><span style="color:#79B8FF"> -quiet</span><span style="color:#F97583"> ></span><span style="color:#9ECBFF"> /tmp/key/akey</span></span>
+<span class="line"><span style="color:#B392F0">chmod</span><span style="color:#79B8FF"> 600</span><span style="color:#9ECBFF"> /tmp/key/akey</span></span>
+<span class="line"><span style="color:#B392F0">ssh</span><span style="color:#79B8FF"> -i</span><span style="color:#9ECBFF"> /tmp/key/akey</span><span style="color:#9ECBFF"> bandit17@localhost</span></span></code></pre>
+<hr>
+<h2 id="level-17--18">Level 17 → 18</h2>
+<p><strong>Objective:</strong> Find the line that changed between <code>passwords.old</code> and <code>passwords.new</code>.</p>
+<ul>
+<li><strong>Methodology:</strong> Use the structural comparison tool <code>diff</code> to pinpoint differences between the old and new files.</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">diff</span><span style="color:#9ECBFF"> passwords.old</span><span style="color:#9ECBFF"> passwords.new</span></span></code></pre>
+<hr>
+<h2 id="level-18--19">Level 18 → 19</h2>
+<p><strong>Objective:</strong> Log into <code>bandit18</code>. The account is hard-configured to force a prompt exit and log out immediately upon shell initialization.</p>
+<ul>
+<li><strong>Methodology:</strong> Bypass default profile script blocks by passing the file command string directly to the tail of your terminal connection invocation.</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">ssh</span><span style="color:#9ECBFF"> bandit18@bandit.labs.overthewire.org</span><span style="color:#79B8FF"> -p</span><span style="color:#79B8FF"> 2220</span><span style="color:#9ECBFF"> "cat readme"</span></span></code></pre>
+<hr>
+<h2 id="level-19--20">Level 19 → 20</h2>
+<p><strong>Objective:</strong> Leverage a local binary called <code>bandit20-do</code> that runs with elevated SetUID privileges.</p>
+<ul>
+<li><strong>Methodology:</strong> Running the program executes tasks with the permissions of the <code>bandit20</code> user owner, bypassing standard group isolation barriers.</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">./bandit20-do</span><span style="color:#9ECBFF"> cat</span><span style="color:#9ECBFF"> /etc/bandit_pass/bandit20</span></span></code></pre></div> <nav class="article-footer" aria-label="Writeup navigation"> <a class="back-link font-mono" href="/writeups/">← back to writeups</a> </nav> </article>  </main> <footer class="site-footer"> <div class="footer-inner"> <p class="footer-line"> <span class="prompt" aria-hidden="true">$</span> whoami
+<span class="dim">→ Feizal Said · Nairobi, Kenya</span> </p> <ul class="footer-links" aria-label="Social links"> <li><a href="https://github.com/feizalsaid" target="_blank" rel="noopener noreferrer">GitHub</a></li><li><a href="https://www.linkedin.com/in/feizalsaid" target="_blank" rel="noopener noreferrer">LinkedIn</a></li><li><a href="https://app.hackthebox.com/users/feizalsaid" target="_blank" rel="noopener noreferrer">Hack The Box</a></li><li><a href="https://tryhackme.com/p/feizalsaid" target="_blank" rel="noopener noreferrer">TryHackMe</a></li><li><a href="mailto:feizalsaid9@gmail.com" target="_blank" rel="noopener noreferrer">Email</a></li> </ul> <p class="copy">&copy; 2026 Feizal Said. Built with Astro.</p> </div> </footer>  </div> </body></html> 

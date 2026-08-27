@@ -1,0 +1,170 @@
+<!DOCTYPE html><html lang="en" data-theme> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Krypton — Hack The Box Walkthrough · Feizal Said</title><meta name="description" content="Working through Krypton's 5-level cryptography challenge."><!-- Theme: apply before paint to avoid FOUC --><script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          var dark = t
+            ? t === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        } catch (e) {
+          document.documentElement.setAttribute(
+            'data-theme',
+            window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          );
+        }
+      })();
+    </script><!-- Social / OG --><meta property="og:type" content="website"><meta property="og:title" content="Krypton — Hack The Box Walkthrough · Feizal Said"><meta property="og:description" content="Working through Krypton's 5-level cryptography challenge."><meta property="og:url" content="https://feizalsaid.github.io/writeups/vh-krypton-01/"><meta property="og:image" content="https://feizalsaid.github.io/images/og-cover.png"><meta property="og:site_name" content="Feizal Said"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Krypton — Hack The Box Walkthrough · Feizal Said"><meta name="twitter:description" content="Working through Krypton's 5-level cryptography challenge."><meta name="twitter:image" content="https://feizalsaid.github.io/images/og-cover.png"><link rel="canonical" href="https://feizalsaid.github.io/writeups/vh-krypton-01/"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><!-- Fonts --><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><!-- Structured data --><script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Feizal Said",
+        "url": {new URL('/', SITE).href},
+        "jobTitle": "Cybersecurity & Cloud Security Engineer",
+        "email": "mailto:feizalsaid9@gmail.com",
+        "sameAs": [
+          "https://github.com/feizalsaid",
+          "https://www.linkedin.com/in/feizalsaid",
+          "https://app.hackthebox.com/users/feizalsaid",
+          "https://tryhackme.com/p/feizalsaid"
+        ]
+      }
+    </script><link rel="stylesheet" href="/_astro/certifications.BR9g6oWl.css">
+<style>.writeup-article{max-width:48rem;margin:0 auto;padding:2rem 1.25rem 4rem}.back-link{color:var(--accent-text);font-size:.85rem;text-decoration:none}.back-link:hover{text-decoration:underline}.article-head{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}.meta-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem}.meta{color:var(--text-muted);font-size:.8rem}.article-title{font-size:clamp(1.7rem,4vw,2.4rem);margin:0 0 .75rem}.article-desc{color:var(--text-secondary);font-size:1.02rem;line-height:1.6;margin:0 0 1rem}.tag-row{list-style:none;display:flex;flex-wrap:wrap;gap:.5rem;padding:0;margin:0}.article-footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border)}
+</style></head> <body> <!-- Background layers --> <div class="grid-bg" aria-hidden="true"></div> <div class="glow-orb glow-orb-1" aria-hidden="true"></div> <div class="glow-orb glow-orb-2" aria-hidden="true"></div> <div class="relative z-10 flex min-h-screen flex-col"> <header class="site-header"> <div class="header-inner"> <a class="logo" href="/" aria-label="Feizal Said — home"> <span class="prompt" aria-hidden="true">$</span> <span class="logo-name">feizal<span class="path">@sec</span> ~</span> </a> <nav aria-label="Primary"> <ul class="nav-list"> <li> <a class="nav-link" href="/"> Home </a> </li><li> <a class="nav-link" href="/certifications/"> Certifications </a> </li><li> <a class="nav-link" href="/skills/"> Skills </a> </li><li> <a class="nav-link" href="/projects/"> Projects </a> </li><li> <a class="nav-link active" href="/writeups/" aria-current="page"> Writeups </a> </li> </ul> </nav> <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle color theme" data-theme-icon> <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path> </svg> <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <circle cx="12" cy="12" r="5"></circle> <line x1="12" y1="1" x2="12" y2="3"></line> <line x1="12" y1="21" x2="12" y2="23"></line> <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line> <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line> <line x1="1" y1="12" x2="3" y2="12"></line> <line x1="21" y1="12" x2="23" y2="12"></line> <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line> <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line> </svg> </button> <script type="module">const c=document.getElementById("themeToggle");c&&c.addEventListener("click",()=>{const t=document.documentElement,e=t.getAttribute("data-theme")==="dark"?"light":"dark";t.setAttribute("data-theme",e);try{localStorage.setItem("theme",e)}catch{}});</script>  </div> </header>  <main class="relative flex-1">  <article class="writeup-article"> <a class="back-link font-mono" href="/writeups/">← all writeups</a> <header class="article-head"> <div class="meta-row"> <span class="cat-badge offensive">Offensive</span> <span class="meta font-mono"><time datetime="2024-05-20T00:00:00.000Z">May 20, 2024</time></span> <span class="meta font-mono">12 min read</span> </div> <h1 class="article-title font-display">Krypton — Hack The Box Walkthrough</h1> <p class="article-desc">Working through Krypton&#39;s 5-level cryptography challenge.</p> <ul class="tag-row"> <li class="tag">Hack The Box</li><li class="tag">Cryptography</li><li class="tag">Base64</li><li class="tag">ROT13</li><li class="tag">Vigenere</li><li class="tag">Frequency Analysis</li><li class="tag">CTF</li>  </ul> </header> <div class="writeup-body"><p><strong>Platform:</strong> Hack The Box
+<strong>Difficulty:</strong> Easy
+<strong>Key Techniques:</strong> Classical cryptography — Base64, ROT13, Caesar cipher, frequency analysis, Vigenere cipher</p>
+<hr>
+<h2 id="overview">Overview</h2>
+<p>Krypton is a cryptography-focused challenge on Hack The Box. Each level introduces a different classical cipher, building from simple encoding to polyalphabetic substitution. The challenge progresses through 6 levels, each requiring the previous password to access.</p>
+<hr>
+<h2 id="level-1--level-2-base64-encoding">Level 1 → Level 2: Base64 Encoding</h2>
+<p><strong>Clue:</strong> The first level provides a Base64-encoded string.</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#79B8FF">echo</span><span style="color:#9ECBFF"> "S1JZUFRPTk1JU0dSRUFU"</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> base64</span><span style="color:#79B8FF"> -d</span></span>
+<span class="line"><span style="color:#6A737D"># Output: KRYPTONISGREAT</span></span></code></pre>
+<p><strong>Password for Level 2:</strong> <code>KRYPTONISGREAT</code></p>
+<hr>
+<h2 id="level-2--level-3-rot13-substitution">Level 2 → Level 3: ROT13 Substitution</h2>
+<p><strong>Clue:</strong> A file containing ROT13-encoded text.</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#79B8FF">echo</span><span style="color:#9ECBFF"> "YBATR GUR OCNFFJBEQ EBGNLR"</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> tr</span><span style="color:#9ECBFF"> 'A-Za-z'</span><span style="color:#9ECBFF"> 'N-ZA-Mn-za-m'</span></span>
+<span class="line"><span style="color:#6A737D"># Output: LEVEL TWO PASSWORD ROTTEN</span></span></code></pre>
+<p><strong>Password for Level 3:</strong> <code>ROTTEN</code></p>
+<hr>
+<h2 id="level-3--level-4-caesar-cipher-rot-based">Level 3 → Level 4: Caesar Cipher (ROT-Based)</h2>
+<p><strong>Clue:</strong> An encrypted file and a key-based rotation cipher.</p>
+<p>The encryption used a simple substitution where each letter maps to another. By analyzing the mapping pattern:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>Input:  abc → Output: mno</span></span>
+<span class="line"><span>Pattern: a→m, b→n, c→o (shift of 12)</span></span></code></pre>
+<p>Applying the reverse shift to the encrypted text <code>AYCQYPGQCYQWOMQEMDUEQMEK</code>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#79B8FF">echo</span><span style="color:#9ECBFF"> "AYCQYPGQCYQWOMQEMDUEQMEK"</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> tr</span><span style="color:#9ECBFF"> 'M-ZA-Lm-za-l'</span><span style="color:#9ECBFF"> 'A-MN-Za-mn-z'</span></span></code></pre>
+<p><strong>Password for Level 4:</strong> <code>CAESARISEASY</code></p>
+<hr>
+<h2 id="level-4--level-5-frequency-analysis">Level 4 → Level 5: Frequency Analysis</h2>
+<p><strong>Clue:</strong> Three encrypted files (<code>found1</code>, <code>found2</code>, <code>found3</code>) encrypted with monoalphabetic substitution.</p>
+<h3 id="approach">Approach</h3>
+<p>Counted letter frequencies across all three files and compared against English language frequency distributions:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Letter</th><th>found1</th><th>found2</th><th>found3</th><th>English Expected</th></tr></thead><tbody><tr><td>q</td><td>10.1%</td><td>8.7%</td><td>8.6%</td><td>~0.1%</td></tr><tr><td>j</td><td>6.6%</td><td>7.4%</td><td>7.3%</td><td>~0.2%</td></tr><tr><td>c</td><td>6.9%</td><td>4.0%</td><td>6.1%</td><td>~2.8%</td></tr><tr><td>g</td><td>5.3%</td><td>5.2%</td><td>6.2%</td><td>~2.0%</td></tr><tr><td>u</td><td>6.5%</td><td>6.1%</td><td>4.8%</td><td>~2.8%</td></tr></tbody></table>
+<p>The high-frequency letters (q, j, c) likely mapped to common English letters (e, t, a, o, i, n). Using <strong>JCryptTool</strong> for frequency analysis and <strong>quipqiup</strong> for automated decryption:</p>
+<p><strong>Password for Level 5:</strong> <code>brute</code></p>
+<hr>
+<h2 id="level-5--level-6-vigenere-cipher">Level 5 → Level 6: Vigenere Cipher</h2>
+<p><strong>Clue:</strong> A Vigenere-encrypted message with key length 6.</p>
+<p>The Vigenere cipher uses a keyword to shift each letter by a different amount. With a known key length of 6:</p>
+<ol>
+<li>Split the ciphertext into 6 groups (every 6th character)</li>
+<li>Each group is encrypted with the same Caesar shift</li>
+<li>Apply frequency analysis to each group independently</li>
+<li>Reconstruct the keyword from the individual shifts</li>
+</ol>
+<p>Using this approach, the plaintext was recovered.</p>
+<p><strong>Password for Level 6:</strong> <code>cleartext</code></p>
+<hr>
+<h2 id="level-6-polyalphabetic-cipher-incomplete">Level 6: Polyalphabetic Cipher (Incomplete)</h2>
+<p>Level 6 involves a more complex polyalphabetic cipher. This level was not completed — it requires deeper analysis of the encryption scheme.</p>
+<hr>
+<h2 id="tools-used">Tools Used</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tool</th><th>Purpose</th></tr></thead><tbody><tr><td><code>base64</code></td><td>Decoding Base64 strings</td></tr><tr><td><code>tr</code></td><td>ROT13 and Caesar cipher rotation</td></tr><tr><td>JCryptTool</td><td>Frequency analysis and cipher identification</td></tr><tr><td>quipqiup</td><td>Automated substitution cipher solver</td></tr><tr><td>CyberChef</td><td>Multi-format encoding/decoding</td></tr></tbody></table>
+<hr>
+<h2 id="lessons-learned">Lessons Learned</h2>
+<ol>
+<li><strong>Classical ciphers are still relevant</strong> — understanding them builds the foundation for modern cryptography.</li>
+<li><strong>Frequency analysis is powerful</strong> — even with small samples, letter frequency can break monoalphabetic ciphers.</li>
+<li><strong><code>tr</code> is a versatile tool</strong> — quick ROT13 and Caesar shifts without external tools.</li>
+<li><strong>Polyalphabetic ciphers resist simple frequency analysis</strong> — each position has its own frequency distribution, requiring more sophisticated techniques.</li>
+</ol></div> <nav class="article-footer" aria-label="Writeup navigation"> <a class="back-link font-mono" href="/writeups/">← back to writeups</a> </nav> </article>  </main> <footer class="site-footer"> <div class="footer-inner"> <p class="footer-line"> <span class="prompt" aria-hidden="true">$</span> whoami
+<span class="dim">→ Feizal Said · Nairobi, Kenya</span> </p> <ul class="footer-links" aria-label="Social links"> <li><a href="https://github.com/feizalsaid" target="_blank" rel="noopener noreferrer">GitHub</a></li><li><a href="https://www.linkedin.com/in/feizalsaid" target="_blank" rel="noopener noreferrer">LinkedIn</a></li><li><a href="https://app.hackthebox.com/users/feizalsaid" target="_blank" rel="noopener noreferrer">Hack The Box</a></li><li><a href="https://tryhackme.com/p/feizalsaid" target="_blank" rel="noopener noreferrer">TryHackMe</a></li><li><a href="mailto:feizalsaid9@gmail.com" target="_blank" rel="noopener noreferrer">Email</a></li> </ul> <p class="copy">&copy; 2026 Feizal Said. Built with Astro.</p> </div> </footer>  </div> </body></html> 

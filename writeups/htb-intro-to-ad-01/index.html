@@ -1,0 +1,500 @@
+<!DOCTYPE html><html lang="en" data-theme> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Forward lookup · Feizal Said</title><meta name="description" content="Foundational walkthrough of Active Directory concepts and attack surfaces."><!-- Theme: apply before paint to avoid FOUC --><script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          var dark = t
+            ? t === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        } catch (e) {
+          document.documentElement.setAttribute(
+            'data-theme',
+            window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          );
+        }
+      })();
+    </script><!-- Social / OG --><meta property="og:type" content="website"><meta property="og:title" content="Forward lookup · Feizal Said"><meta property="og:description" content="Foundational walkthrough of Active Directory concepts and attack surfaces."><meta property="og:url" content="https://feizalsaid.github.io/writeups/htb-intro-to-ad-01/"><meta property="og:image" content="https://feizalsaid.github.io/images/og-cover.png"><meta property="og:site_name" content="Feizal Said"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Forward lookup · Feizal Said"><meta name="twitter:description" content="Foundational walkthrough of Active Directory concepts and attack surfaces."><meta name="twitter:image" content="https://feizalsaid.github.io/images/og-cover.png"><link rel="canonical" href="https://feizalsaid.github.io/writeups/htb-intro-to-ad-01/"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><!-- Fonts --><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><!-- Structured data --><script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Feizal Said",
+        "url": {new URL('/', SITE).href},
+        "jobTitle": "Cybersecurity & Cloud Security Engineer",
+        "email": "mailto:feizalsaid9@gmail.com",
+        "sameAs": [
+          "https://github.com/feizalsaid",
+          "https://www.linkedin.com/in/feizalsaid",
+          "https://app.hackthebox.com/users/feizalsaid",
+          "https://tryhackme.com/p/feizalsaid"
+        ]
+      }
+    </script><link rel="stylesheet" href="/_astro/certifications.BR9g6oWl.css">
+<style>.writeup-article{max-width:48rem;margin:0 auto;padding:2rem 1.25rem 4rem}.back-link{color:var(--accent-text);font-size:.85rem;text-decoration:none}.back-link:hover{text-decoration:underline}.article-head{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}.meta-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem}.meta{color:var(--text-muted);font-size:.8rem}.article-title{font-size:clamp(1.7rem,4vw,2.4rem);margin:0 0 .75rem}.article-desc{color:var(--text-secondary);font-size:1.02rem;line-height:1.6;margin:0 0 1rem}.tag-row{list-style:none;display:flex;flex-wrap:wrap;gap:.5rem;padding:0;margin:0}.article-footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border)}
+</style></head> <body> <!-- Background layers --> <div class="grid-bg" aria-hidden="true"></div> <div class="glow-orb glow-orb-1" aria-hidden="true"></div> <div class="glow-orb glow-orb-2" aria-hidden="true"></div> <div class="relative z-10 flex min-h-screen flex-col"> <header class="site-header"> <div class="header-inner"> <a class="logo" href="/" aria-label="Feizal Said — home"> <span class="prompt" aria-hidden="true">$</span> <span class="logo-name">feizal<span class="path">@sec</span> ~</span> </a> <nav aria-label="Primary"> <ul class="nav-list"> <li> <a class="nav-link" href="/"> Home </a> </li><li> <a class="nav-link" href="/certifications/"> Certifications </a> </li><li> <a class="nav-link" href="/skills/"> Skills </a> </li><li> <a class="nav-link" href="/projects/"> Projects </a> </li><li> <a class="nav-link active" href="/writeups/" aria-current="page"> Writeups </a> </li> </ul> </nav> <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle color theme" data-theme-icon> <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path> </svg> <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <circle cx="12" cy="12" r="5"></circle> <line x1="12" y1="1" x2="12" y2="3"></line> <line x1="12" y1="21" x2="12" y2="23"></line> <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line> <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line> <line x1="1" y1="12" x2="3" y2="12"></line> <line x1="21" y1="12" x2="23" y2="12"></line> <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line> <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line> </svg> </button> <script type="module">const c=document.getElementById("themeToggle");c&&c.addEventListener("click",()=>{const t=document.documentElement,e=t.getAttribute("data-theme")==="dark"?"light":"dark";t.setAttribute("data-theme",e);try{localStorage.setItem("theme",e)}catch{}});</script>  </div> </header>  <main class="relative flex-1">  <article class="writeup-article"> <a class="back-link font-mono" href="/writeups/">← all writeups</a> <header class="article-head"> <div class="meta-row"> <span class="cat-badge offensive">Offensive</span> <span class="meta font-mono"><time datetime="2026-08-26T00:00:00.000Z">August 26, 2026</time></span> <span class="meta font-mono">12 min read</span> </div> <h1 class="article-title font-display">Forward lookup</h1> <p class="article-desc">Foundational walkthrough of Active Directory concepts and attack surfaces.</p> <ul class="tag-row"> <li class="tag">Active Directory</li><li class="tag">Kerberos</li><li class="tag">LDAP</li><li class="tag">HTB Academy</li><li class="tag">CPTS</li> <li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1078</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1558</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1482</li> </ul> </header> <div class="writeup-body"><h2 id="module-overview">Module Overview</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Field</th><th>Detail</th></tr></thead><tbody><tr><td><strong>Module</strong></td><td>Introduction to Active Directory</td></tr><tr><td><strong>Platform</strong></td><td>HTB Academy</td></tr><tr><td><strong>Author</strong></td><td>mrb3n (Co-Author: TreyCraf7_1)</td></tr><tr><td><strong>Difficulty</strong></td><td>Fundamental</td></tr><tr><td><strong>Rating</strong></td><td>4.66 / 5</td></tr><tr><td><strong>Sections</strong></td><td>16</td></tr><tr><td><strong>Path</strong></td><td>CPTS (Module 07)</td></tr></tbody></table>
+<p>This module is the foundational AD module in the HTB Certified Penetration Testing Specialist (CPTS) path. It covers AD architecture, terminology, protocols, and the attack surface that Active Directory presents. It assumes basic Windows command line knowledge and familiarity with information security principles.</p>
+<p><strong>Prerequisites</strong>: Getting Started, Introduction to Networking, Windows Fundamentals.</p>
+<hr>
+<h2 id="why-active-directory">Why Active Directory?</h2>
+<p>Active Directory is present in the majority of corporate environments. It manages users, computers, groups, network devices, file shares, group policies, and trusts. AD provides authentication and authorization within Windows domain environments.</p>
+<p>It has come under increasing attack because:</p>
+<ul>
+<li>Designed to be <strong>backward-compatible</strong> — many features are not secure by default</li>
+<li><strong>Easily misconfigured</strong> — misconfigs are common and exploitable</li>
+<li><strong>Vast attack surface</strong> — complexity creates opportunities for attackers</li>
+<li><strong>High-value target</strong> — compromising AD often means full domain compromise</li>
+</ul>
+<p>As penetration testers, understanding AD fundamentals is non-negotiable.</p>
+<hr>
+<h2 id="ad-structure">AD Structure</h2>
+<p>AD is arranged in a <strong>hierarchical tree structure</strong>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>Forest (Security Boundary)</span></span>
+<span class="line"><span>└── Root Domain: INLANEFREIGHT.LOCAL</span></span>
+<span class="line"><span>    ├── Child Domain: ADMIN.INLANEFREIGHT.LOCAL</span></span>
+<span class="line"><span>    ├── Child Domain: CORP.INLANEFREIGHT.LOCAL</span></span>
+<span class="line"><span>    └── Child Domain: DEV.INLANEFREIGHT.LOCAL</span></span></code></pre>
+<p>Key structural concepts:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Component</th><th>Description</th></tr></thead><tbody><tr><td><strong>Forest</strong></td><td>Topmost container. Security boundary. Contains all AD objects. Can hold multiple domains.</td></tr><tr><td><strong>Domain</strong></td><td>Logical group of objects (users, computers, OUs). Each domain has its own database and policies.</td></tr><tr><td><strong>Tree</strong></td><td>Collection of domains sharing a common namespace. Parent-child trust relationships.</td></tr><tr><td><strong>OU</strong></td><td>Organizational Unit. Container for grouping similar objects. Used for administrative delegation and GPO application.</td></tr><tr><td><strong>Container</strong></td><td>Holds other objects. Has a defined place in the directory subtree hierarchy.</td></tr><tr><td><strong>Leaf</strong></td><td>Does not contain other objects. Found at the end of the subtree hierarchy (e.g., users, printers).</td></tr></tbody></table>
+<p><strong>Multi-forest scenarios</strong> are common in organizations that perform acquisitions — it’s often faster to create a trust relationship than recreate all users.</p>
+<hr>
+<h2 id="key-terminology">Key Terminology</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Term</th><th>Description</th></tr></thead><tbody><tr><td><strong>Object</strong></td><td>ANY resource in AD — OUs, printers, users, domain controllers, etc.</td></tr><tr><td><strong>Attributes</strong></td><td>Characteristics that define an object (e.g., <code>displayName</code>, <code>givenName</code>, <code>sAMAccountName</code>). Every attribute has an LDAP name.</td></tr><tr><td><strong>Schema</strong></td><td>Blueprint of the AD database. Defines what object types can exist and their associated attributes.</td></tr><tr><td><strong>GUID</strong></td><td>128-bit unique identifier assigned to every AD object. Unique across the enterprise. Stored in <code>ObjectGUID</code> attribute.</td></tr><tr><td><strong>SID</strong></td><td>Security Identifier. Unique per security principal. Issued by the domain controller. Never reused, even after deletion.</td></tr><tr><td><strong>DN</strong></td><td>Distinguished Name. Full path to an object (e.g., <code>cn=bjones,ou=IT,ou=Employees,dc=inlanefreight,dc=local</code>).</td></tr><tr><td><strong>RDN</strong></td><td>Relative Distinguished Name. Single component of the DN that identifies the object at its current level.</td></tr><tr><td><strong>sAMAccountName</strong></td><td>User’s logon name (e.g., <code>bjones</code>). Must be unique and 20 or fewer characters.</td></tr><tr><td><strong>userPrincipalName</strong></td><td>Format: <code>username@domain.local</code>. Not mandatory but commonly used.</td></tr><tr><td><strong>FQDN</strong></td><td>Fully Qualified Domain Name. Complete hostname + domain (e.g., <code>DC01.INLANEFREIGHT.LOCAL</code>).</td></tr></tbody></table>
+<hr>
+<h2 id="ad-objects">AD Objects</h2>
+<h3 id="users">Users</h3>
+<ul>
+<li><strong>Leaf objects</strong> — cannot contain other objects</li>
+<li><strong>Security principals</strong> — have SID and GUID</li>
+<li>Many attributes: display name, last login, password change date, email, manager, etc.</li>
+<li><strong>Prime targets</strong> for attackers — compromised user credentials can lead to domain compromise</li>
+</ul>
+<h3 id="computers">Computers</h3>
+<ul>
+<li><strong>Leaf objects</strong> but <strong>security principals</strong> (have SID + GUID)</li>
+<li>Full administrative access to a computer (<code>NT AUTHORITY\SYSTEM</code>) grants similar rights to a standard domain user</li>
+<li>Can be used for most enumeration tasks a user can perform</li>
+</ul>
+<h3 id="groups">Groups</h3>
+<ul>
+<li><strong>Container objects</strong> — can contain users, computers, and other groups</li>
+<li><strong>Security principals</strong> — have SID + GUID</li>
+<li>Used for managing permissions at scale</li>
+<li><strong>Nested groups</strong> (group within a group) can lead to unintended privilege escalation</li>
+</ul>
+<h3 id="organizational-units-ous">Organizational Units (OUs)</h3>
+<ul>
+<li>Containers for grouping similar objects</li>
+<li>Used for <strong>administrative delegation</strong> without granting full admin rights</li>
+<li>GPOs can be applied at the OU level</li>
+</ul>
+<h3 id="domain-controllers">Domain Controllers</h3>
+<ul>
+<li>The “brains” of AD</li>
+<li>Handle authentication, enforce security policies, store all object information</li>
+<li>Replicate changes between DCs via the KCC service</li>
+</ul>
+<hr>
+<h2 id="fsmo-roles">FSMO Roles</h2>
+<p>Microsoft separated DC responsibilities into five <strong>Flexible Single Master Operation</strong> roles:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Role</th><th>Scope</th><th>Description</th></tr></thead><tbody><tr><td><strong>Schema Master</strong></td><td>Forest</td><td>Manages read/write copy of the AD schema</td></tr><tr><td><strong>Domain Naming Master</strong></td><td>Forest</td><td>Prevents duplicate domain names in the forest</td></tr><tr><td><strong>RID Master</strong></td><td>Domain</td><td>Assigns RID blocks to DCs for new object SID creation</td></tr><tr><td><strong>PDC Emulator</strong></td><td>Domain</td><td>Authoritative DC. Handles auth, password changes, GPOs, time sync</td></tr><tr><td><strong>Infrastructure Master</strong></td><td>Domain</td><td>Translates GUIDs, SIDs, DNs between domains</td></tr></tbody></table>
+<p>All five roles are assigned to the first DC in the forest root. Each new domain gets RID, PDC, and Infrastructure roles.</p>
+<p><strong>Attack relevance</strong>: Compromising the PDC Emulator gives an attacker the ability to modify Group Policies, reset passwords for any user, and perform Golden Ticket attacks.</p>
+<hr>
+<h2 id="trusts">Trusts</h2>
+<p>Trusts establish authentication between domains/forests, allowing users to access resources outside their home domain.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Trust Type</th><th>Description</th></tr></thead><tbody><tr><td><strong>Parent-child</strong></td><td>Within same forest. Two-way transitive trust.</td></tr><tr><td><strong>Cross-link</strong></td><td>Between child domains. Speeds up authentication.</td></tr><tr><td><strong>External</strong></td><td>Non-transitive. Between separate forests not joined by forest trust. Uses SID filtering.</td></tr><tr><td><strong>Tree-root</strong></td><td>Two-way transitive. Between forest root and new tree root domain.</td></tr><tr><td><strong>Forest</strong></td><td>Transitive trust between two forest root domains.</td></tr></tbody></table>
+<p><strong>Attack relevance</strong>: Trust relationships are a common escalation path. Compromising a child domain can sometimes lead to compromise of the parent domain through trust abuse.</p>
+<hr>
+<h2 id="core-protocols">Core Protocols</h2>
+<h3 id="kerberos-port-88-tcpudp">Kerberos (Port 88 TCP/UDP)</h3>
+<p>Default authentication protocol for domain accounts since Windows 2000. Uses tickets instead of transmitting passwords over the network.</p>
+<p><strong>Authentication Flow:</strong></p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>1. User logs on → password converted to NTLM hash</span></span>
+<span class="line"><span>   ↓</span></span>
+<span class="line"><span>2. AS-REQ → KDC verifies user info → creates TGT</span></span>
+<span class="line"><span>   ↓</span></span>
+<span class="line"><span>3. TGT delivered to user (encrypted with user's hash)</span></span>
+<span class="line"><span>   ↓</span></span>
+<span class="line"><span>4. TGS-REQ → User presents TGT, requests service ticket</span></span>
+<span class="line"><span>   ↓</span></span>
+<span class="line"><span>5. TGS-REP → TGS encrypted with service account's NTLM hash</span></span>
+<span class="line"><span>   ↓</span></span>
+<span class="line"><span>6. AP-REQ → User presents TGS to service → access granted</span></span></code></pre>
+<p><strong>Attack relevance</strong>:</p>
+<ul>
+<li><strong>Kerberoasting</strong> — Request TGS tickets for service accounts, crack them offline</li>
+<li><strong>AS-REP Roasting</strong> — Target accounts with <code>DONT_REQUIRE_PREAUTH</code></li>
+<li><strong>Golden Ticket</strong> — Forge TGTs using the KRBTGT hash</li>
+<li><strong>Silver Ticket</strong> — Forge TGS tickets for specific services</li>
+</ul>
+<h3 id="dns">DNS</h3>
+<p>AD DS uses DNS for:</p>
+<ul>
+<li>Locating Domain Controllers</li>
+<li>DC-to-DC communication</li>
+<li>Service record (SRV) lookups</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="powershell"><code><span class="line"><span style="color:#6A737D"># Forward lookup</span></span>
+<span class="line"><span style="color:#E1E4E8">nslookup INLANEFREIGHT.LOCAL</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D"># Reverse lookup</span></span>
+<span class="line"><span style="color:#E1E4E8">nslookup </span><span style="color:#79B8FF">172.16</span><span style="color:#E1E4E8">.</span><span style="color:#79B8FF">6.5</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D"># Find host by FQDN</span></span>
+<span class="line"><span style="color:#E1E4E8">nslookup ACADEMY</span><span style="color:#F97583">-</span><span style="color:#E1E4E8">EA</span><span style="color:#F97583">-</span><span style="color:#E1E4E8">DC01</span></span></code></pre>
+<h3 id="ldap-ports-389--636-over-ssl">LDAP (Ports 389 / 636 over SSL)</h3>
+<p>LDAP is the language applications use to communicate with AD. It’s how systems “speak” to the directory.</p>
+<p><strong>Two authentication types:</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><strong>Simple</strong></td><td>Username/password BIND request. Can be anonymous, unauthenticated, or credentialed.</td></tr><tr><td><strong>SASL</strong></td><td>Uses other services (e.g., Kerberos) to bind. More secure due to separation of auth from application protocols.</td></tr></tbody></table>
+<h3 id="msrpc">MSRPC</h3>
+<p>Microsoft’s implementation of RPC. Four key interfaces for AD interaction:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Interface</th><th>Purpose</th></tr></thead><tbody><tr><td><code>lsarpc</code></td><td>Local Security Authority operations</td></tr><tr><td><code>netlogon</code></td><td>Domain authentication</td></tr><tr><td><code>samr</code></td><td>Security Account Manager operations</td></tr><tr><td><code>drsuapi</code></td><td>Directory Replication (used for DCSync)</td></tr></tbody></table>
+<p><strong>Attack relevance</strong>: The <code>drsuapi</code> interface is abused in <strong>DCSync attacks</strong> — replicating password hashes from a DC without being a DC.</p>
+<hr>
+<h2 id="gpo--security-descriptors">GPO &#x26; Security Descriptors</h2>
+<h3 id="group-policy-objects-gpos">Group Policy Objects (GPOs)</h3>
+<ul>
+<li>Virtual collections of policy settings, each with a unique GUID</li>
+<li>Can contain local file system or AD settings</li>
+<li>Applied to users and computers at the domain or OU level</li>
+<li>Commonly targeted by attackers to push malicious scripts or configurations</li>
+</ul>
+<h3 id="access-control">Access Control</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Component</th><th>Description</th></tr></thead><tbody><tr><td><strong>ACL</strong></td><td>Ordered collection of ACEs on an object</td></tr><tr><td><strong>ACE</strong></td><td>Identifies a trustee and their allowed/denied/audited access rights</td></tr><tr><td><strong>DACL</strong></td><td>Defines who is granted or denied access. If no DACL, everyone gets full access.</td></tr><tr><td><strong>SACL</strong></td><td>Logs access attempts to secured objects</td></tr></tbody></table>
+<h3 id="adminsdholder--sdprop">AdminSDHolder &#x26; SDProp</h3>
+<ul>
+<li><strong>AdminSDHolder</strong> holds the Security Descriptor applied to privileged groups</li>
+<li><strong>SDProp</strong> runs hourly, checking protected groups and reverting unauthorized ACL changes</li>
+<li>If an attacker modifies ACLs on a Domain Admin, SDProp will clean it up — unless <code>dsHeuristics</code> is modified</li>
+</ul>
+<hr>
+<h2 id="security-sensitive-attributes">Security-Sensitive Attributes</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Attribute</th><th>Description</th><th>Attack Value</th></tr></thead><tbody><tr><td><strong>adminCount</strong></td><td><code>1</code> = protected by SDProp</td><td>Attackers look for accounts with <code>adminCount=1</code> — often privileged</td></tr><tr><td><strong>sIDHistory</strong></td><td>Stores previous SIDs (used in migrations)</td><td>Can be abused to gain prior elevated access if SID Filtering isn’t enabled</td></tr><tr><td><strong>dsHeuristics</strong></td><td>Forest-wide config string</td><td>Can exclude groups from Protected Groups list</td></tr><tr><td><strong>NTDS.DIT</strong></td><td>AD database on DC at <code>C:\Windows\NTDS\</code></td><td>Contains all password hashes. Extracting it = full domain compromise</td></tr></tbody></table>
+<hr>
+<h2 id="key-takeaways-for-pentesters">Key Takeaways for Pentesters</h2>
+<ol>
+<li>
+<p><strong>Enumeration is everything</strong> — AD has a massive attack surface. Understanding the structure tells you where to look.</p>
+</li>
+<li>
+<p><strong>Kerberos is the primary target</strong> — Most AD attacks revolve around Kerberos abuse (Kerberoasting, AS-REP Roasting, Golden/Silver Tickets).</p>
+</li>
+<li>
+<p><strong>Trust relationships matter</strong> — A child domain compromise can escalate to the parent forest through trust abuse.</p>
+</li>
+<li>
+<p><strong>Group Policies are powerful</strong> — Misconfigured GPOs are a common and high-impact finding.</p>
+</li>
+<li>
+<p><strong>Protected groups aren’t always protected</strong> — <code>dsHeuristics</code> and <code>sIDHistory</code> can weaken SDProp protections.</p>
+</li>
+<li>
+<p><strong>NTDS.DIT is the crown jewels</strong> — Full AD compromise means extracting all domain hashes.</p>
+</li>
+<li>
+<p><strong>LDAP queries reveal everything</strong> — BloodHound, PowerView, and similar tools abuse LDAP to map the entire AD environment.</p>
+</li>
+<li>
+<p><strong>Service accounts are low-hanging fruit</strong> — Often have SPNs, weak passwords, and are rarely rotated.</p>
+</li>
+</ol>
+<hr>
+<h2 id="skills-assessment">Skills Assessment</h2>
+<p>The module ends with a practical skills assessment covering:</p>
+<ul>
+<li>Identifying AD objects and their attributes</li>
+<li>Understanding Kerberos authentication flow</li>
+<li>Recognizing FSMO roles and their functions</li>
+<li>Mapping trust relationships</li>
+<li>Identifying common AD misconfigurations</li>
+</ul>
+<p>The assessment reinforces the theoretical concepts with hands-on exercises in the provided Pwnbox instance.</p>
+<hr>
+<h2 id="references">References</h2>
+<ul>
+<li><a href="https://academy.hackthebox.com/course/preview/introduction-to-active-directory">HTB Academy — Introduction to Active Directory</a></li>
+<li><a href="https://github.com/pred07/CPTS-Walkthrough/blob/main/HTB-Academy/07.%20Introduction%20to%20Active%20Directory.md">CPTS-Walkthrough — Module 07</a></li>
+<li><a href="https://academy.hackthebox.com/course/preview/active-directory-enumeration--attacks">HTB Academy — Active Directory Enumeration &#x26; Attacks</a></li>
+<li><a href="https://docs.microsoft.com/en-us/windows/win32/ad/">Microsoft — Active Directory Technical Documentation</a></li>
+</ul></div> <nav class="article-footer" aria-label="Writeup navigation"> <a class="back-link font-mono" href="/writeups/">← back to writeups</a> </nav> </article>  </main> <footer class="site-footer"> <div class="footer-inner"> <p class="footer-line"> <span class="prompt" aria-hidden="true">$</span> whoami
+<span class="dim">→ Feizal Said · Nairobi, Kenya</span> </p> <ul class="footer-links" aria-label="Social links"> <li><a href="https://github.com/feizalsaid" target="_blank" rel="noopener noreferrer">GitHub</a></li><li><a href="https://www.linkedin.com/in/feizalsaid" target="_blank" rel="noopener noreferrer">LinkedIn</a></li><li><a href="https://app.hackthebox.com/users/feizalsaid" target="_blank" rel="noopener noreferrer">Hack The Box</a></li><li><a href="https://tryhackme.com/p/feizalsaid" target="_blank" rel="noopener noreferrer">TryHackMe</a></li><li><a href="mailto:feizalsaid9@gmail.com" target="_blank" rel="noopener noreferrer">Email</a></li> </ul> <p class="copy">&copy; 2026 Feizal Said. Built with Astro.</p> </div> </footer>  </div> </body></html> 
