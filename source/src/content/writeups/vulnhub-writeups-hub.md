@@ -47,7 +47,16 @@ A consolidated index of all my walkthroughs across multiple platforms — from b
 | [Synced — Open rsync Share](/writeups/htb-synced-01/) | Very Easy | rsync, unauthenticated share | 3 min |
 | [Mongod — Unauthenticated MongoDB](/writeups/htb-mongod-01/) | Very Easy | MongoDB, NoSQL database enumeration | 3 min |
 | [Funnel — SSH Tunneling to PostgreSQL](/writeups/htb-funnel-01/) | Very Easy | FTP, SSH port forwarding, PostgreSQL | 6 min |
+| [Ignition — Magento Default Credentials](/writeups/htb-ignition-01/) | Very Easy | Virtual hosting, Magento admin | 3 min |
+| [Included — LFI → LXD Breakout](/writeups/htb-included-01/) | Very Easy | LFI, TFTP, LXD container breakout | 5 min |
+| [Archetype — MSSQL xp_cmdshell → WinRM](/writeups/htb-archetype-01/) | Easy | SMB leak, MSSQL RCE, PS history privesc | 6 min |
+| [Oopsie — IDOR → SUID Privesc](/writeups/htb-oopsie-01/) | Easy | IDOR, cookie tampering, SUID/PATH | 5 min |
+| [Unified — Log4Shell → root](/writeups/htb-unified-01/) | Easy | Log4Shell (CVE-2021-44228), MongoDB | 6 min |
+| [Markup — XXE → root](/writeups/htb-markup-01/) | Easy | XXE, SSH key theft, scheduled task | 5 min |
+| [Base — Swap Leak → sudo](/writeups/htb-base-01/) | Easy | Swap file leak, PHP type juggling, sudo | 5 min |
 | [Pennyworth — Jenkins Groovy RCE](/writeups/htb-pennyworth-01/) | Very Easy | Jenkins, default creds, Groovy script console | 4 min |
+| [Knife — PHP Backdoor RCE](/writeups/htb-knife-01/) | Easy | PHP 8.1.0-dev backdoor, sudo | 4 min |
+| [Paper — Rocket.chat CVE](/writeups/htb-paper-01/) | Easy | WordPress, Rocket.chat, credential reuse | 6 min |
 | [Bike — Node.js SSTI](/writeups/htb-bike-01/) | Easy | Handlebars SSTI, remote code execution | 4 min |
 | [MetaTwo — WordPress SQLi → XXE → root](/writeups/htb-metatwo-01/) | Easy | BookingPress SQLi, WordPress XXE, passpie/PGP | 10 min |
 
@@ -100,6 +109,6 @@ This last step matters most. Every offensive writeup includes defensive recommen
 ## Stats
 
 - **72+ machines** completed across all platforms
-- **21 writeups** published (more coming)
+- **30 writeups** published (more coming)
 - **5 platforms** covered — HTB, VulnHub, OverTheWire, UnderTheWire, Splunk
 - **Offensive + Defensive** coverage
