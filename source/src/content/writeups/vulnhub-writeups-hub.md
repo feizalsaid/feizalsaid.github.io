@@ -22,8 +22,8 @@ A consolidated index of all my walkthroughs across multiple platforms — from b
 
 | Platform | Profile | Focus |
 |----------|---------|-------|
-| **Hack The Box** | [feizalsaid](https://app.hackthebox.com/users/feizalsaid) | Offensive, active machines |
-| **TryHackMe** | [feizalsaid](https://tryhackme.com/p/feizalsaid) | Structured learning paths |
+| **Hack The Box** | [feizalsaid](https://app.hackthebox.com/users/1941706) | Offensive, active machines |
+| **TryHackMe** | — | Structured learning paths |
 | **VulnHub** | [GitHub Repo](https://github.com/feizalsaid/vulnhub-works-) | Offline vulnerable VMs |
 | **OverTheWire** | [Bandit](https://overthewire.org/wargames/bandit/) | Linux fundamentals |
 | **UnderTheWire** | [Century](https://underthewire.tech/century) | PowerShell mastery |

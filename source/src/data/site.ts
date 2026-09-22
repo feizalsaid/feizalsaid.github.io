@@ -13,8 +13,7 @@ export const SITE = {
     github: 'https://github.com/feizalsaid',
     linkedin: 'https://www.linkedin.com/in/feizalsaid',
     medium: 'https://medium.com/@feizalsaid9',
-    hackthebox: 'https://app.hackthebox.com/users/feizalsaid',
-    tryhackme: 'https://tryhackme.com/p/feizalsaid',
+    hackthebox: 'https://app.hackthebox.com/users/1941706',
   },
 };
 
