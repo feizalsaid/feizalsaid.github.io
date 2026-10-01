@@ -1,0 +1,796 @@
+<!DOCTYPE html><html lang="en" data-theme> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Januscape (CVE-2026-53359) — KVM/x86 Guest-to-Host Escape · Feizal Said</title><meta name="description" content="Root-cause analysis of a 16-year-old use-after-free in KVM's x86 shadow MMU, the one-line role-comparison fix, and a per-distribution patch status tracker."><!-- Theme: apply before paint to avoid FOUC --><script>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          var dark = t
+            ? t === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        } catch (e) {
+          document.documentElement.setAttribute(
+            'data-theme',
+            window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+          );
+        }
+      })();
+    </script><!-- Social / OG --><meta property="og:type" content="website"><meta property="og:title" content="Januscape (CVE-2026-53359) — KVM/x86 Guest-to-Host Escape · Feizal Said"><meta property="og:description" content="Root-cause analysis of a 16-year-old use-after-free in KVM's x86 shadow MMU, the one-line role-comparison fix, and a per-distribution patch status tracker."><meta property="og:url" content="https://feizalsaid.github.io/writeups/januscape-kvm-escape-01/"><meta property="og:image" content="https://feizalsaid.github.io/images/og-cover.png"><meta property="og:site_name" content="Feizal Said"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Januscape (CVE-2026-53359) — KVM/x86 Guest-to-Host Escape · Feizal Said"><meta name="twitter:description" content="Root-cause analysis of a 16-year-old use-after-free in KVM's x86 shadow MMU, the one-line role-comparison fix, and a per-distribution patch status tracker."><meta name="twitter:image" content="https://feizalsaid.github.io/images/og-cover.png"><link rel="canonical" href="https://feizalsaid.github.io/writeups/januscape-kvm-escape-01/"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><!-- Fonts --><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><!-- Structured data --><script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Feizal Said",
+        "url": {new URL('/', SITE).href},
+        "jobTitle": "Cybersecurity & Cloud Security Engineer",
+        "email": "mailto:feizalsaid9@gmail.com",
+        "sameAs": [
+          "https://github.com/feizalsaid",
+          "https://www.linkedin.com/in/feizalsaid",
+          "https://app.hackthebox.com/users/1941706"
+        ]
+      }
+    </script><link rel="stylesheet" href="/_astro/certifications.BBSei92j.css">
+<style>.writeup-article{max-width:48rem;margin:0 auto;padding:2rem 1.25rem 4rem}.back-link{color:var(--accent-text);font-size:.85rem;text-decoration:none}.back-link:hover{text-decoration:underline}.article-head{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}.meta-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem}.meta{color:var(--text-muted);font-size:.8rem}.article-title{font-size:clamp(1.7rem,4vw,2.4rem);margin:0 0 .75rem}.article-desc{color:var(--text-secondary);font-size:1.02rem;line-height:1.6;margin:0 0 1rem}.tag-row{list-style:none;display:flex;flex-wrap:wrap;gap:.5rem;padding:0;margin:0}.article-footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border)}
+</style></head> <body> <!-- Background layers --> <div class="grid-bg" aria-hidden="true"></div> <div class="glow-orb glow-orb-1" aria-hidden="true"></div> <div class="glow-orb glow-orb-2" aria-hidden="true"></div> <div class="relative z-10 flex min-h-screen flex-col"> <header class="site-header"> <div class="header-inner"> <a class="logo" href="/" aria-label="Feizal Said — home"> <span class="prompt" aria-hidden="true">$</span> <span class="logo-name">feizal<span class="path">@sec</span> ~</span> </a> <nav aria-label="Primary"> <ul class="nav-list"> <li> <a class="nav-link" href="/"> Home </a> </li><li> <a class="nav-link" href="/certifications/"> Certifications </a> </li><li> <a class="nav-link" href="/skills/"> Skills </a> </li><li> <a class="nav-link" href="/projects/"> Projects </a> </li><li> <a class="nav-link active" href="/writeups/" aria-current="page"> Writeups </a> </li> </ul> </nav> <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle color theme" data-theme-icon> <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path> </svg> <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"> <circle cx="12" cy="12" r="5"></circle> <line x1="12" y1="1" x2="12" y2="3"></line> <line x1="12" y1="21" x2="12" y2="23"></line> <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line> <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line> <line x1="1" y1="12" x2="3" y2="12"></line> <line x1="21" y1="12" x2="23" y2="12"></line> <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line> <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line> </svg> </button> <script type="module">const c=document.getElementById("themeToggle");c&&c.addEventListener("click",()=>{const t=document.documentElement,e=t.getAttribute("data-theme")==="dark"?"light":"dark";t.setAttribute("data-theme",e);try{localStorage.setItem("theme",e)}catch{}});</script>  </div> </header>  <main class="relative flex-1">  <article class="writeup-article"> <a class="back-link font-mono" href="/writeups/">← all writeups</a> <header class="article-head"> <div class="meta-row"> <span class="cat-badge offensive">Offensive</span> <span class="meta font-mono"><time datetime="2026-10-01T00:00:00.000Z">October 1, 2026</time></span> <span class="meta font-mono">18 min read</span> </div> <h1 class="article-title font-display">Januscape (CVE-2026-53359) — KVM/x86 Guest-to-Host Escape</h1> <p class="article-desc">Root-cause analysis of a 16-year-old use-after-free in KVM&#39;s x86 shadow MMU, the one-line role-comparison fix, and a per-distribution patch status tracker.</p> <ul class="tag-row"> <li class="tag">KVM</li><li class="tag">Virtualization Escape</li><li class="tag">Kernel Exploitation</li><li class="tag">Use-After-Free</li><li class="tag">CVE-2026-53359</li><li class="tag">Linux Kernel</li><li class="tag">Cloud Security</li><li class="tag">Nested Virtualization</li><li class="tag">Vulnerability Research</li> <li class="mitre-tag" title="MITRE ATT&CK technique">MITRE: T1611</li> </ul> </header> <div class="writeup-body"><div align="center">
+<p><strong>Research analysis of a disclosed CVE — not original research.</strong></p>
+<p>Discovered and reported by <a href="https://x.com/v4bel">Hyunwoo Kim (@v4bel)</a>, used as a
+zero-day in Google’s kvmCTF program. Embargo lifted 2026-07-06; PoC published to
+oss-security. This writeup covers my own reading of the root cause, the fix, and
+the patch landscape.</p>
+</div>
+<hr>
+<h2 id="tldr">TL;DR</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td>CVE</td><td>CVE-2026-53359</td></tr><tr><td>Component</td><td>Linux kernel KVM/x86 <strong>shadow MMU</strong> — <code>kvm_mmu_get_child_sp()</code> in <code>arch/x86/kvm/mmu/mmu.c</code></td></tr><tr><td>Type</td><td>Use-after-free → guest-to-host escape / host DoS / local privesc</td></tr><tr><td>Introduced</td><td><code>2032a93d66fa</code> — v2.6.36 (2010-08-01)</td></tr><tr><td>Prior partial fix</td><td><code>0cb2af2ea66a</code> — closed the <em>GFN</em>-mismatch variant only</td></tr><tr><td>Fixed</td><td><code>81ccda30b4e8</code> — merged 2026-06-19, first in <strong>v7.2-rc1</strong></td></tr><tr><td>Affected window</td><td>kernels <strong>2.6.36 → 7.1</strong> (any tree without the backport)</td></tr><tr><td>Latency</td><td><strong>~16 years</strong></td></tr><tr><td>Architecture</td><td>x86 only — <strong>both</strong> Intel VMX/EPT and AMD SVM/NPT</td></tr><tr><td>Trigger</td><td>root in guest <strong>+</strong> nested virtualization exposed to that guest</td></tr><tr><td>Scoring</td><td>CVSS 7.8 (Red Hat CNA) / 8.8 HIGH (NVD 3.1), EPSS 0.91%, not in KEV</td></tr></tbody></table>
+<p>The one-sentence version: KVM decided whether to reuse an existing shadow page by
+comparing <strong>only the GFN</strong>, never the <strong>role</strong>. A <code>direct=1</code> split page and a
+<code>direct=0</code> indirect page at the same GFN got interchanged, which desynchronized
+KVM’s reverse-map accounting and produced a use-after-free. The fix adds a role
+comparison to the same <code>if</code>.</p>
+<hr>
+<h2 id="background-two-ways-kvm-translates-a-guest-address">Background: two ways KVM translates a guest address</h2>
+<p>x86 KVM gets a guest virtual address to a host physical address two ways:</p>
+<p><strong>Hardware two-stage paging</strong> — Intel EPT, AMD NPT. The guest page tables are left
+alone and the hardware handles GPA→HPA. This is the default on modern hosts
+(<code>kvm-intel.ept=1</code>, <code>tdp_mmu=Y</code>) and KVM uses the <strong>TDP MMU</strong>.</p>
+<p><strong>Shadow paging</strong> — KVM shadows the guest page tables in software, keeping a
+<code>struct kvm_mmu_page</code> per level, backed by a 4 KB <code>sp->spt</code> page. This is the
+<strong>shadow MMU</strong>.</p>
+<p>The key is <strong>nested virtualization</strong>. When an L1 guest becomes a hypervisor itself
+and runs an L2 guest with EPT/NPT, the hardware has only one stage available, so
+L0 must shadow L1’s nested EPT/NPT <strong>in software</strong>. Because that nested shadowing
+operates on page tables the guest controls, it goes through the legacy shadow MMU
+rather than the TDP MMU.</p>
+<p>That’s the crux: <strong>the bug is only reachable through the shadow MMU, and the
+shadow MMU is only reachable from a guest that runs a nested guest.</strong></p>
+<p>All of this happens inside in-kernel KVM. Faults generated as L1 builds its nested
+EPT and runs L2 are handled entirely by the host kernel’s KVM and never leave to
+userspace. This is a pure kernel bug, independent of QEMU — which is why it also
+threatens large clouds running their own virtualization stack.</p>
+<h3 id="the-rmap-invariant">The rmap invariant</h3>
+<p>KVM maintains an <strong>rmap</strong> (reverse map) per memslot to reverse-track, by GFN, the
+leaf SPTEs each shadow page maps. Installing a leaf adds the SPTE pointer to that
+GFN’s rmap; tearing it down removes it from the same rmap.</p>
+<p>The invariant: <strong>install and teardown must compute the same GFN key.</strong> Januscape
+breaks exactly this invariant, and everything downstream follows from that.</p>
+<hr>
+<h2 id="root-cause-role-blind-shadow-page-reuse">Root cause: role-blind shadow page reuse</h2>
+<p>The vulnerable <code>kvm_mmu_get_child_sp()</code> (pre-<code>81ccda30b4e8</code>):</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="c"><code><span class="line"><span style="color:#F97583">static</span><span style="color:#F97583"> struct</span><span style="color:#E1E4E8"> kvm_mmu_page </span><span style="color:#F97583">*</span><span style="color:#B392F0">kvm_mmu_get_child_sp</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">struct</span><span style="color:#E1E4E8"> kvm_vcpu </span><span style="color:#F97583">*</span><span style="color:#FFAB70">vcpu</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">						 u64 </span><span style="color:#F97583">*</span><span style="color:#FFAB70">sptep</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">gfn_t</span><span style="color:#FFAB70"> gfn</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#F97583">						 bool</span><span style="color:#FFAB70"> direct</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">unsigned</span><span style="color:#F97583"> int</span><span style="color:#FFAB70"> access</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#F97583">	union</span><span style="color:#E1E4E8"> kvm_mmu_page_role role;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">	if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">is_shadow_present_pte</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">sptep) </span><span style="color:#F97583">&#x26;&#x26;</span><span style="color:#F97583"> !</span><span style="color:#B392F0">is_large_pte</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">sptep) </span><span style="color:#F97583">&#x26;&#x26;</span></span>
+<span class="line"><span style="color:#B392F0">	    spte_to_child_sp</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">sptep) </span><span style="color:#F97583">&#x26;&#x26;</span><span style="color:#B392F0"> spte_to_child_sp</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">sptep)->gfn </span><span style="color:#F97583">==</span><span style="color:#E1E4E8"> gfn)</span><span style="color:#6A737D">  /* [1] */</span></span>
+<span class="line"><span style="color:#F97583">		return</span><span style="color:#B392F0"> ERR_PTR</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">-</span><span style="color:#E1E4E8">EEXIST);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">	role </span><span style="color:#F97583">=</span><span style="color:#B392F0"> kvm_mmu_child_role</span><span style="color:#E1E4E8">(sptep, direct, access);</span></span>
+<span class="line"><span style="color:#F97583">	return</span><span style="color:#B392F0"> kvm_mmu_get_shadow_page</span><span style="color:#E1E4E8">(vcpu, gfn, role);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>Line <code>[1]</code> compares only the <strong>GFN</strong> of the child shadow page already linked at
+<code>sptep</code>. It never looks at the <strong>role</strong> — which encodes what kind of shadow page
+this is. The critical field is <code>role.direct</code>:</p>
+<ul>
+<li><code>direct=0</code> — <strong>indirect</strong>: shadows a guest page table</li>
+<li><code>direct=1</code> — <strong>direct split</strong>: a large page KVM had to split into 4 KB because
+the host couldn’t map it as-is</li>
+</ul>
+<p>The shadow MMU’s <code>FNAME(fetch)</code> path asks for <em>both</em> roles at the same GFN, in the
+same walk:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="c"><code><span class="line"><span style="color:#B392F0">	for_each_shadow_entry</span><span style="color:#E1E4E8">(vcpu, fault</span><span style="color:#F97583">-></span><span style="color:#FFAB70">addr</span><span style="color:#E1E4E8">, it) {</span></span>
+<span class="line"><span style="color:#E1E4E8">		sp </span><span style="color:#F97583">=</span><span style="color:#B392F0"> kvm_mmu_get_child_sp</span><span style="color:#E1E4E8">(vcpu, it.sptep, table_gfn,</span></span>
+<span class="line"><span style="color:#79B8FF">					  false</span><span style="color:#E1E4E8">, access);</span><span style="color:#6A737D">          /* [2] indirect */</span></span>
+<span class="line"><span style="color:#E1E4E8">	}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">	/* ... */</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">	for</span><span style="color:#E1E4E8"> (; </span><span style="color:#B392F0">shadow_walk_okay</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#FFAB70">it</span><span style="color:#E1E4E8">); </span><span style="color:#B392F0">shadow_walk_next</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">&#x26;</span><span style="color:#FFAB70">it</span><span style="color:#E1E4E8">)) {</span></span>
+<span class="line"><span style="color:#E1E4E8">		sp </span><span style="color:#F97583">=</span><span style="color:#B392F0"> kvm_mmu_get_child_sp</span><span style="color:#E1E4E8">(vcpu, it.sptep, base_gfn,</span></span>
+<span class="line"><span style="color:#79B8FF">					  true</span><span style="color:#E1E4E8">, direct_access);</span><span style="color:#6A737D">   /* [3] direct split */</span></span>
+<span class="line"><span style="color:#E1E4E8">	}</span></span></code></pre>
+<ul>
+<li><code>[2]</code> — an upper-level entry points at a guest page table → need an <strong>indirect</strong>
+shadow page.</li>
+<li><code>[3]</code> — a 2 MB large page can’t be mapped as-is by the host → split it into
+4 KB → need a <strong>direct split</strong> shadow page.</li>
+</ul>
+<p>Both can target the <strong>same GFN</strong>. Because <code>[1]</code> is role-blind, when a direct split
+from <code>[3]</code> is already linked at <code>sptep</code> and <code>[2]</code> requests an indirect page,
+<code>kvm_mmu_get_child_sp()</code> returns <code>-EEXIST</code> on the GFN match alone. Fetch then
+<strong>reuses the existing page of the wrong role</strong> instead of building a correctly-roled
+one.</p>
+<p>This is the same bug class as <code>0cb2af2ea66a</code> (“Fix shadow paging use-after-free
+due to unexpected GFN”). That commit fixed the <em>GFN</em> mismatch variant and left the
+<em>role</em> mismatch open for another 16 years.</p>
+<hr>
+<h2 id="the-use-after-free">The use-after-free</h2>
+<p>Reusing a shadow page under the wrong role corrupts its lifetime and parent-pointer
+accounting. The result is a state where one shadow page has already been freed while
+another still holds a pointer into it — an orphaned parent pointer.</p>
+<p>When the shadow MMU later tears that structure down and clears the orphan, it writes
+a <strong>single fixed constant</strong> through it:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>__kvm_mmu_prepare_zap_page()</span></span>
+<span class="line"><span>  kvm_mmu_unlink_parents()</span></span>
+<span class="line"><span>    drop_parent_pte()</span></span>
+<span class="line"><span>      mmu_spte_clear_no_track(sptep)                   /* [4] */</span></span>
+<span class="line"><span>        __update_clear_spte_fast()</span></span>
+<span class="line"><span>          WRITE_ONCE(*sptep, SHADOW_NONPRESENT_VALUE)   /* [5] */</span></span></code></pre>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="c"><code><span class="line"><span style="color:#F97583">static</span><span style="color:#F97583"> void</span><span style="color:#B392F0"> drop_parent_pte</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">struct</span><span style="color:#E1E4E8"> kvm </span><span style="color:#F97583">*</span><span style="color:#FFAB70">kvm</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">struct</span><span style="color:#E1E4E8"> kvm_mmu_page </span><span style="color:#F97583">*</span><span style="color:#FFAB70">sp</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">			    u64 </span><span style="color:#F97583">*</span><span style="color:#FFAB70">parent_pte</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#B392F0">	mmu_page_remove_parent_pte</span><span style="color:#E1E4E8">(kvm, sp, parent_pte);</span></span>
+<span class="line"><span style="color:#B392F0">	mmu_spte_clear_no_track</span><span style="color:#E1E4E8">(parent_pte);</span><span style="color:#6A737D">   /* [4] */</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">static</span><span style="color:#F97583"> void</span><span style="color:#B392F0"> mmu_spte_clear_no_track</span><span style="color:#E1E4E8">(u64 </span><span style="color:#F97583">*</span><span style="color:#FFAB70">sptep</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#B392F0">	__update_clear_spte_fast</span><span style="color:#E1E4E8">(sptep, SHADOW_NONPRESENT_VALUE);</span><span style="color:#6A737D">   /* [5] */</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">#ifdef</span><span style="color:#B392F0"> CONFIG_X86_64</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> SHADOW_NONPRESENT_VALUE</span><span style="color:#B392F0">  BIT_ULL</span><span style="color:#E1E4E8">(</span><span style="color:#79B8FF">63</span><span style="color:#E1E4E8">)</span><span style="color:#6A737D">   /* 0x8000000000000000 */</span></span>
+<span class="line"><span style="color:#F97583">#else</span></span>
+<span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> SHADOW_NONPRESENT_VALUE</span><span style="color:#79B8FF">  0</span><span style="color:#F97583">ULL</span></span>
+<span class="line"><span style="color:#F97583">#endif</span></span></code></pre>
+<p>At <code>[4]</code> the kernel believes it’s clearing one slot of a shadow page. If that page
+was freed and reallocated as another kernel object, <code>WRITE_ONCE</code> at <code>[5]</code> writes
+<code>0x8000000000000000</code> into the victim’s memory.</p>
+<p><strong>This is a tighter primitive than a typical UAF write.</strong> The guest chooses the
+<em>slot</em> (offset) within the page, but the <em>value</em> is fixed. No value control, and
+the write happens only once — because after the zap, KVM installs no further leaf
+SPTEs on that page.</p>
+<hr>
+<h2 id="the-dos-path">The DoS path</h2>
+<p>The same corruption has a much simpler second outcome, and it’s the one the public
+PoC demonstrates: the kernel catches its own inconsistency and panics.</p>
+<p>The reused direct split page has no <code>shadowed_translation</code>, so it derives the leaf
+GFN as <code>sp->gfn + index</code>. A leaf installed through it therefore gets <strong>registered</strong>
+in the rmap under the real guest GFN, but <strong>looked up</strong> under the computed GFN.</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="c"><code><span class="line"><span style="color:#F97583">static</span><span style="color:#F97583"> void</span><span style="color:#B392F0"> kvm_mmu_page_set_translation</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">struct</span><span style="color:#E1E4E8"> kvm_mmu_page </span><span style="color:#F97583">*</span><span style="color:#FFAB70">sp</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">int</span><span style="color:#FFAB70"> index</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">					 gfn_t</span><span style="color:#FFAB70"> gfn</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">unsigned</span><span style="color:#F97583"> int</span><span style="color:#FFAB70"> access</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#F97583">	if</span><span style="color:#E1E4E8"> (sp->shadowed_translation) {</span></span>
+<span class="line"><span style="color:#E1E4E8">		sp->shadowed_translation[index] </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (gfn </span><span style="color:#F97583">&#x3C;&#x3C;</span><span style="color:#E1E4E8"> PAGE_SHIFT) </span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> access;</span></span>
+<span class="line"><span style="color:#F97583">		return</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#E1E4E8">	}</span></span>
+<span class="line"><span style="color:#6A737D">	/* ... */</span></span>
+<span class="line"><span style="color:#B392F0">	WARN_ONCE</span><span style="color:#E1E4E8">(gfn </span><span style="color:#F97583">!=</span><span style="color:#B392F0"> kvm_mmu_page_get_gfn</span><span style="color:#E1E4E8">(sp, index),</span><span style="color:#6A737D">   /* [6] */</span></span>
+<span class="line"><span style="color:#9ECBFF">		  "gfn mismatch under </span><span style="color:#79B8FF">%s</span><span style="color:#9ECBFF"> page </span><span style="color:#79B8FF">%llx</span><span style="color:#9ECBFF"> (expected </span><span style="color:#79B8FF">%llx</span><span style="color:#9ECBFF">, got </span><span style="color:#79B8FF">%llx</span><span style="color:#9ECBFF">)</span><span style="color:#79B8FF">\n</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">		  sp->role.passthrough </span><span style="color:#F97583">?</span><span style="color:#9ECBFF"> "passthrough"</span><span style="color:#F97583"> :</span><span style="color:#9ECBFF"> "direct"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">		  sp->gfn, </span><span style="color:#B392F0">kvm_mmu_page_get_gfn</span><span style="color:#E1E4E8">(sp, index), gfn);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p><code>[6]</code> is only a <strong>downstream symptom</strong> — a WARN reporting the GFN mismatch. What
+is actually fatal is on teardown, when the leaf is removed from the rmap while the
+two keys have diverged:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>kvm_mmu_page_fault()</span></span>
+<span class="line"><span>  kvm_mmu_do_page_fault()</span></span>
+<span class="line"><span>    ept_page_fault()</span></span>
+<span class="line"><span>      ept_fetch()</span></span>
+<span class="line"><span>        mmu_set_spte()</span></span>
+<span class="line"><span>          drop_spte()</span></span>
+<span class="line"><span>            rmap_remove()</span></span>
+<span class="line"><span>              pte_list_remove()          /* [7] */</span></span>
+<span class="line"><span>                KVM_BUG_ON_DATA_CORRUPTION -> BUG  /* [8] */</span></span></code></pre>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="c"><code><span class="line"><span style="color:#F97583">#define</span><span style="color:#B392F0"> KVM_BUG_ON_DATA_CORRUPTION</span><span style="color:#E1E4E8">(</span><span style="color:#FFAB70">cond</span><span style="color:#E1E4E8">, </span><span style="color:#FFAB70">kvm</span><span style="color:#E1E4E8">)		</span><span style="color:#79B8FF">\</span></span>
+<span class="line"><span style="color:#E1E4E8">({						</span><span style="color:#79B8FF">\</span></span>
+<span class="line"><span style="color:#F97583">	bool</span><span style="color:#E1E4E8"> __ret </span><span style="color:#F97583">=</span><span style="color:#F97583"> !!</span><span style="color:#E1E4E8">(cond);				</span><span style="color:#79B8FF">\</span></span>
+<span class="line"><span style="color:#F97583">	if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">IS_ENABLED</span><span style="color:#E1E4E8">(CONFIG_BUG_ON_DATA_CORRUPTION))	</span><span style="color:#79B8FF">\</span></span>
+<span class="line"><span style="color:#B392F0">		BUG_ON</span><span style="color:#E1E4E8">(__ret);</span><span style="color:#6A737D">		/* [8] */</span><span style="color:#79B8FF">	\</span></span>
+<span class="line"><span style="color:#F97583">	else</span><span style="color:#F97583"> if</span><span style="color:#E1E4E8"> (</span><span style="color:#B392F0">WARN_ON_ONCE</span><span style="color:#E1E4E8">(__ret </span><span style="color:#F97583">&#x26;&#x26;</span><span style="color:#F97583"> !</span><span style="color:#E1E4E8">(kvm)->vm_bugged))	</span><span style="color:#79B8FF">\</span></span>
+<span class="line"><span style="color:#B392F0">		kvm_vm_bugged</span><span style="color:#E1E4E8">(kvm);			</span><span style="color:#79B8FF">\</span></span>
+<span class="line"><span style="color:#B392F0">	unlikely</span><span style="color:#E1E4E8">(__ret);				</span><span style="color:#79B8FF">\</span></span>
+<span class="line"><span style="color:#E1E4E8">})</span></span></code></pre>
+<p><code>[7]</code> fires when the looked-up rmap is empty, the single entry doesn’t match the
+expected <code>spte</code>, or the <code>spte</code> isn’t in a multi-entry chain. With
+<code>CONFIG_BUG_ON_DATA_CORRUPTION=y</code> (the RHEL default) plus <code>panic_on_oops</code>, that’s
+an immediate host panic.</p>
+<p>The DoS path needs neither a reoccupied victim nor any value control — which is
+exactly why it’s the reproducible one.</p>
+<p>Sample panic from RHEL <code>6.12.0-211.26.1.el10_2.x86_64</code>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>gfn mismatch under direct page 8a00 (expected 8b00, got 256e4)</span></span>
+<span class="line"><span>WARNING: CPU: 6 PID: 974281 at arch/x86/kvm/mmu/mmu.c:689 kvm_mmu_page_set_translation.part.0+0xb7/0x130 [kvm]</span></span>
+<span class="line"><span>CPU: 6 PID: 974281 Comm: qemu-kvm  6.12.0-211.26.1.el10_2.x86_64</span></span>
+<span class="line"><span>kernel BUG at arch/x86/kvm/mmu/mmu.c:1091!</span></span>
+<span class="line"><span>RIP: 0010:pte_list_remove.isra.0+0xd9/0xe0 [kvm]</span></span>
+<span class="line"><span>CPU: 3 PID: 974278 Comm: qemu-kvm</span></span></code></pre>
+<p>Read it top-down: the WARN means role confusion already happened and the rmap was
+registered under the wrong key. The <code>BUG</code> in <code>pte_list_remove</code> is the fatal one —
+no rmap entry found under the computed key. <code>Comm: qemu-kvm</code> is the host-side KVM
+thread that was walking the L2 page tables.</p>
+<hr>
+<h2 id="the-fix">The fix</h2>
+<p><code>81ccda30b4e8</code> — <em>KVM: x86: Fix shadow paging use-after-free due to unexpected role</em>,
+by Paolo Bonzini, first released in v7.2-rc1. One role comparison added:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="diff"><code><span class="line"><span style="color:#FDAEB7"><span style="user-select: none;">-</span>-- a/arch/x86/kvm/mmu/mmu.c</span></span>
+<span class="line"><span style="color:#85E89D"><span style="user-select: none;">+</span>++ b/arch/x86/kvm/mmu/mmu.c</span></span>
+<span class="line"><span style="color:#B392F0;font-weight:bold">@@ -2459,13 +2459,15 @@</span><span style="color:#E1E4E8"> static struct kvm_mmu_page *kvm_mmu_get_child_sp(struct kvm_vcpu *vcpu,</span></span>
+<span class="line"><span style="color:#E1E4E8"> 						 u64 *sptep, gfn_t gfn,</span></span>
+<span class="line"><span style="color:#E1E4E8"> 						 bool direct, unsigned int access)</span></span>
+<span class="line"><span style="color:#E1E4E8"> {</span></span>
+<span class="line"><span style="color:#FDAEB7"><span style="user-select: none;">-</span>	union kvm_mmu_page_role role;</span></span>
+<span class="line"><span style="color:#85E89D"><span style="user-select: none;">+</span>	union kvm_mmu_page_role role = kvm_mmu_child_role(sptep, direct, access);</span></span>
+<span class="line"><span style="color:#E1E4E8"> </span></span>
+<span class="line"><span style="color:#FDAEB7"><span style="user-select: none;">-</span>	if (is_shadow_present_pte(*sptep) &#x26;&#x26; !is_large_pte(*sptep) &#x26;&#x26;</span></span>
+<span class="line"><span style="color:#FDAEB7"><span style="user-select: none;">-</span>	    spte_to_child_sp(*sptep) &#x26;&#x26; spte_to_child_sp(*sptep)->gfn == gfn)</span></span>
+<span class="line"><span style="color:#85E89D"><span style="user-select: none;">+</span>	if (is_shadow_present_pte(*sptep) &#x26;&#x26;</span></span>
+<span class="line"><span style="color:#85E89D"><span style="user-select: none;">+</span>	    !is_large_pte(*sptep) &#x26;&#x26;</span></span>
+<span class="line"><span style="color:#85E89D"><span style="user-select: none;">+</span>	    spte_to_child_sp(*sptep) &#x26;&#x26;</span></span>
+<span class="line"><span style="color:#85E89D"><span style="user-select: none;">+</span>	    spte_to_child_sp(*sptep)->gfn == gfn &#x26;&#x26;</span></span>
+<span class="line"><span style="color:#85E89D"><span style="user-select: none;">+</span>	    spte_to_child_sp(*sptep)->role.word == role.word)</span></span>
+<span class="line"><span style="color:#E1E4E8"> 		return ERR_PTR(-EEXIST);</span></span>
+<span class="line"><span style="color:#E1E4E8"> </span></span>
+<span class="line"><span style="color:#FDAEB7"><span style="user-select: none;">-</span>	role = kvm_mmu_child_role(sptep, direct, access);</span></span>
+<span class="line"><span style="color:#E1E4E8"> 	return kvm_mmu_get_shadow_page(vcpu, gfn, role);</span></span>
+<span class="line"><span style="color:#E1E4E8"> }</span></span></code></pre>
+<p>With a role mismatch the condition no longer holds, so <code>fetch</code> falls through to
+<code>kvm_mmu_get_shadow_page(vcpu, gfn, role)</code> and builds a correctly-roled page. The
+rmap keys stop diverging, and both the corruption and the UAF path disappear.</p>
+<p><strong>That’s the whole fix.</strong> Sixteen years, one missing condition.</p>
+<h3 id="verifying-it-on-your-own-host">Verifying it on your own host</h3>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">sudo</span><span style="color:#9ECBFF"> grep</span><span style="color:#79B8FF"> -q</span><span style="color:#9ECBFF"> "role.word == role.word"</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#9ECBFF">  /lib/modules/</span><span style="color:#E1E4E8">$(</span><span style="color:#B392F0">uname</span><span style="color:#79B8FF"> -r</span><span style="color:#E1E4E8">)</span><span style="color:#9ECBFF">/build/arch/x86/kvm/mmu/mmu.c</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#E1E4E8">  &#x26;&#x26; </span><span style="color:#79B8FF">echo</span><span style="color:#9ECBFF"> "PATCHED"</span><span style="color:#F97583"> ||</span><span style="color:#79B8FF"> echo</span><span style="color:#9ECBFF"> "VULNERABLE (or headers unavailable)"</span></span></code></pre>
+<p>Don’t trust the version string on RHEL-family kernels — they backport without
+moving the upstream base version. Check the erratum.</p>
+<hr>
+<h2 id="why-ept1-doesnt-save-you">Why <code>ept=1</code> doesn’t save you</h2>
+<p>A common assumption is that a default host with hardware EPT/NPT and <code>tdp_mmu=Y</code>
+can’t hit a shadow-MMU bug. It can.</p>
+<p>Once L1 runs a nested guest, L0 must shadow L1’s nested EPT <strong>in software</strong>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="c"><code><span class="line"><span style="color:#F97583">void</span><span style="color:#B392F0"> kvm_init_shadow_ept_mmu</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">struct</span><span style="color:#E1E4E8"> kvm_vcpu </span><span style="color:#F97583">*</span><span style="color:#FFAB70">vcpu</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">bool</span><span style="color:#FFAB70"> execonly</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#F97583">			     int</span><span style="color:#FFAB70"> huge_page_level</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">bool</span><span style="color:#FFAB70"> accessed_dirty</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">			     gpa_t</span><span style="color:#FFAB70"> new_eptp</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#F97583">	struct</span><span style="color:#E1E4E8"> kvm_mmu </span><span style="color:#F97583">*</span><span style="color:#E1E4E8">context </span><span style="color:#F97583">=</span><span style="color:#F97583"> &#x26;</span><span style="color:#E1E4E8">vcpu->arch.guest_mmu;</span><span style="color:#6A737D">   /* [16] */</span></span>
+<span class="line"><span style="color:#6A737D">	/* ... */</span></span>
+<span class="line"><span style="color:#E1E4E8">	context->page_fault </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> ept_page_fault;</span><span style="color:#6A737D">             /* [17] */</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">static</span><span style="color:#F97583"> inline</span><span style="color:#F97583"> bool</span><span style="color:#B392F0"> is_tdp_mmu_active</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">struct</span><span style="color:#E1E4E8"> kvm_vcpu </span><span style="color:#F97583">*</span><span style="color:#FFAB70">vcpu</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#F97583">	return</span><span style="color:#E1E4E8"> tdp_mmu_enabled </span><span style="color:#F97583">&#x26;&#x26;</span><span style="color:#E1E4E8"> vcpu->arch.mmu->root_role.direct;</span><span style="color:#6A737D">  /* [18] */</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>The nested-EPT MMU (<code>guest_mmu</code>) shadows guest-controlled page tables, so its
+<code>root_role.direct</code> is <strong>false</strong>. Two consequences:</p>
+<ul>
+<li>KVM installs the legacy <code>ept_page_fault</code> handler at <code>[17]</code>, not
+<code>kvm_tdp_page_fault</code> — and that handler reaches <code>kvm_mmu_get_child_sp()</code> via
+<code>FNAME(fetch)</code>.</li>
+<li><code>is_tdp_mmu_active()</code> at <code>[18]</code> is false, so the lockless TDP fast path doesn’t
+apply either.</li>
+</ul>
+<p><strong>A default host is exposed as soon as a guest uses nested EPT.</strong> AMD’s
+<code>kvm_init_shadow_npt_mmu</code> is structurally identical.</p>
+<hr>
+<h2 id="dual-architecture-why-this-one-is-different">Dual-architecture: why this one is different</h2>
+<p>Kim’s claim, to the best of public knowledge, is that this is the <strong>first
+guest-to-host exploit research triggerable on both Intel and AMD</strong> from a single
+code path. Most KVM escapes are architecture-specific.</p>
+<p>The reason is structural: <code>kvm_mmu_get_child_sp()</code> lives in
+<code>arch/x86/kvm/mmu/mmu.c</code>, which VMX and SVM share. The PoC expresses the whole
+architecture split through a <code>virt_ops</code> abstraction that only swaps page-table bit
+encodings:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="c"><code><span class="line"><span style="color:#F97583">struct</span><span style="color:#E1E4E8"> virt_ops {</span></span>
+<span class="line"><span style="color:#F97583">	const</span><span style="color:#F97583"> char</span><span style="color:#F97583"> *</span><span style="color:#E1E4E8">name;</span></span>
+<span class="line"><span style="color:#F97583">	int</span><span style="color:#E1E4E8">  (</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">cpu_on)(</span><span style="color:#F97583">int</span><span style="color:#E1E4E8"> cpu);</span></span>
+<span class="line"><span style="color:#F97583">	void</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">cpu_off)(</span><span style="color:#F97583">void</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#B392F0">	u64</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">huge_pte)(u64 pa);</span></span>
+<span class="line"><span style="color:#B392F0">	u64</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">tbl_pte)(u64 pa);</span></span>
+<span class="line"><span style="color:#B392F0">	u64</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">leaf4k)(u64 pa);</span></span>
+<span class="line"><span style="color:#B392F0">	u64</span><span style="color:#E1E4E8"> (</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">mk_root)(u64 pml4_pa);</span></span>
+<span class="line"><span style="color:#F97583">	int</span><span style="color:#E1E4E8">  (</span><span style="color:#F97583">*</span><span style="color:#E1E4E8">vcpu_run)(</span><span style="color:#F97583">int</span><span style="color:#E1E4E8"> cpu);</span></span>
+<span class="line"><span style="color:#E1E4E8">};</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">static</span><span style="color:#E1E4E8"> u64 </span><span style="color:#B392F0">vmx_huge_pte</span><span style="color:#E1E4E8">(u64 </span><span style="color:#FFAB70">pa</span><span style="color:#E1E4E8">){ </span><span style="color:#F97583">return</span><span style="color:#E1E4E8"> pa </span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> EPT_LEAF </span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> EPT_PS; }</span><span style="color:#6A737D">           /* [13] */</span></span>
+<span class="line"><span style="color:#F97583">static</span><span style="color:#E1E4E8"> u64 </span><span style="color:#B392F0">svm_huge_pte</span><span style="color:#E1E4E8">(u64 </span><span style="color:#FFAB70">pa</span><span style="color:#E1E4E8">){ </span><span style="color:#F97583">return</span><span style="color:#E1E4E8"> pa </span><span style="color:#F97583">|</span><span style="color:#E1E4E8"> PF_P</span><span style="color:#F97583">|</span><span style="color:#E1E4E8">PF_RW</span><span style="color:#F97583">|</span><span style="color:#E1E4E8">PF_US</span><span style="color:#F97583">|</span><span style="color:#E1E4E8">PF_PS; }</span><span style="color:#6A737D">      /* [14] */</span></span>
+<span class="line"><span style="color:#E1E4E8">ops </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> amd </span><span style="color:#F97583">?</span><span style="color:#F97583"> &#x26;</span><span style="color:#E1E4E8">svm_ops </span><span style="color:#F97583">:</span><span style="color:#F97583"> &#x26;</span><span style="color:#E1E4E8">vmx_ops;</span><span style="color:#6A737D">                                          /* [15] */</span></span></code></pre>
+<p><code>[13]</code> is the Intel EPT entry encoding (RWX <code>0x7</code>, memory type WB, PS bit).
+<code>[14]</code> is the AMD NPT encoding (P/RW/US/PS). <code>[15]</code> picks the backend from the
+module parameter.</p>
+<p>The Intel path brings up EPT12 via <code>vmxon</code> / <code>vmlaunch</code> / <code>vmresume</code>. The AMD
+path sets <code>nested_ctl = SVM_NESTED_CTL_NP_ENABLE</code> with <code>nested_cr3 = the_root</code> and
+uses <code>vmrun</code>. Same PDE toggle, same L2 fault, same race — only the entry bits
+differ.</p>
+<hr>
+<h2 id="the-pocs-key-geometry">The PoC’s key geometry</h2>
+<p>The public PoC is a loadable guest kernel module. Inside the guest (L1) it builds
+and runs its own nested guest (L2) with <strong>raw</strong> VMX or SVM. Once L2 exists, L0
+must shadow L1’s nested EPT/NPT, and the role-gap reuse fires on L0.</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>L0  bare-metal x86_64 Linux, kvm_intel/kvm_amd   &#x3C;-- PANICS HERE</span></span>
+<span class="line"><span>     |</span></span>
+<span class="line"><span>     +-- L1  attacker's guest (poc.ko loaded here)</span></span>
+<span class="line"><span>           |</span></span>
+<span class="line"><span>           +-- L2  nested guest created by poc.ko with raw VMX/SVM</span></span></code></pre>
+<p>The premise is a deliberately degenerate page-table geometry: <strong>one physical page
+used simultaneously as both the leaf of a 2 MB page and a page table page.</strong></p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="c"><code><span class="line"><span style="color:#E1E4E8">	ptg </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> (u64 </span><span style="color:#F97583">*</span><span style="color:#E1E4E8">)greg_va;</span><span style="color:#6A737D">                       /* [10] ptg_pa == greg_pa */</span></span>
+<span class="line"><span style="color:#6A737D">	/* ... */</span></span>
+<span class="line"><span style="color:#FFAB70">	nest_pd</span><span style="color:#E1E4E8">[PDE_IDX] </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> ops</span><span style="color:#F97583">-></span><span style="color:#B392F0">huge_pte</span><span style="color:#E1E4E8">(greg_pa);</span><span style="color:#6A737D">  /* [11] gfn == table_gfn   */</span></span>
+<span class="line"><span style="color:#6A737D">	/* ... */</span></span>
+<span class="line"><span style="color:#FFAB70">	ptg</span><span style="color:#E1E4E8">[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">]         </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> ops</span><span style="color:#F97583">-></span><span style="color:#B392F0">leaf4k</span><span style="color:#E1E4E8">(greg_pa);</span></span>
+<span class="line"><span style="color:#FFAB70">	ptg</span><span style="color:#E1E4E8">[PRIME_IDX] </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> ops</span><span style="color:#F97583">-></span><span style="color:#B392F0">leaf4k</span><span style="color:#E1E4E8">(q_pa);</span><span style="color:#6A737D">        /* [12] diverging leaf     */</span></span></code></pre>
+<ul>
+<li><code>[10]</code> — the nested PT page <code>ptg</code> <strong>is</strong> the first page of <code>greg</code>, so
+<code>ptg_pa == greg_pa</code>.</li>
+<li><code>[11]</code> — when the PDE maps <code>greg</code> as a 2 MB large page, the resulting <code>gfn</code> and
+the <code>table_gfn</code> when the same PDE points to <code>ptg</code> as a page table are both
+<code>greg_pa >> 12</code>. <strong>Equal. Role different.</strong></li>
+<li><code>[12]</code> — one PT entry points at a separate page <code>q</code> (GFN Q) prefilled with
+<code>0x4141414141414141</code>, so that when the wrongly-reused direct page installs a
+leaf, the real GFN (Q) diverges from the direct assumption (<code>sp->gfn + index</code>).</li>
+</ul>
+<p>L2’s code is three instructions:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>movabs rax, GVA ; mov rax,[rax] ; vmcall</span></span></code></pre>
+<p>One load to induce a nested EPT/NPT violation, then exit. That fault is what
+drives the L0 shadow MMU fetch.</p>
+<h3 id="the-race">The race</h3>
+<p>Triggering needs two kinds of vCPU. The <strong>writer</strong> toggles one PDE between huge
+and table form; the <strong>faulters</strong> repeatedly run L2 to keep raising faults through
+that PDE:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="c"><code><span class="line"><span style="color:#FFAB70">	nest_pd</span><span style="color:#E1E4E8">[PDE_IDX] </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> ops</span><span style="color:#F97583">-></span><span style="color:#B392F0">huge_pte</span><span style="color:#E1E4E8">(greg_pa);</span><span style="color:#6A737D">   /* [19] */</span></span>
+<span class="line"><span style="color:#F97583">	for</span><span style="color:#E1E4E8"> (k </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">; k </span><span style="color:#F97583">&#x3C;</span><span style="color:#E1E4E8"> dwell; k</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">) </span><span style="color:#B392F0">cpu_relax</span><span style="color:#E1E4E8">();</span></span>
+<span class="line"><span style="color:#FFAB70">	nest_pd</span><span style="color:#E1E4E8">[PDE_IDX] </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> ops</span><span style="color:#F97583">-></span><span style="color:#B392F0">tbl_pte</span><span style="color:#E1E4E8">(ptg_pa);</span><span style="color:#6A737D">     /* [20] */</span></span>
+<span class="line"><span style="color:#F97583">	for</span><span style="color:#E1E4E8"> (k </span><span style="color:#F97583">=</span><span style="color:#79B8FF"> 0</span><span style="color:#E1E4E8">; k </span><span style="color:#F97583">&#x3C;</span><span style="color:#E1E4E8"> dwell; k</span><span style="color:#F97583">++</span><span style="color:#E1E4E8">) </span><span style="color:#B392F0">cpu_relax</span><span style="color:#E1E4E8">();</span></span></code></pre>
+<ul>
+<li>At <code>[19]</code> the PDE maps <code>greg</code> as 2 MB. But <code>ptg</code> shares that GFN, so
+<code>account_shadowed</code> sets <code>disallow_lpage</code>; <code>kvm_mmu_hugepage_adjust</code> downgrades
+the fault to 4 KB and creates a <strong>direct split</strong> (<code>direct=1</code>).</li>
+<li>At <code>[20]</code> the PDE points at <code>ptg</code> as a page table, so L0 needs an <strong>indirect</strong>
+(<code>direct=0</code>) shadow page at the same GFN.</li>
+</ul>
+<p>The exploitable window is the <strong>non-atomic gap</strong> in L0’s emulation of the guest’s
+PDE write — between the moment L0 commits the new PDE value and the moment it zaps
+the old shadow link at <code>kvm_page_track_write</code>. A faulter that faults inside that
+gap calls <code>kvm_mmu_get_child_sp()</code> with the <em>new</em> role while the <em>old</em>-role child
+is still linked at <code>sptep</code> → the GFN-match reuse fires.</p>
+<p>With <code>nvcpu=8</code> the faulters contend over <code>mmu_lock</code>, delaying the writer’s
+<code>track_write</code> and widening the window. Time-to-win varies from seconds to minutes,
+but on vulnerable code enough attempts trigger it deterministically.</p>
+<h3 id="sequence-to-panic">Sequence to panic</h3>
+<ol>
+<li>Reused direct page installs leaf GFN Q.</li>
+<li>Real GFN diverges from the direct assumption → <code>"gfn mismatch under direct page"</code>
+WARN fires, rmap registered under the real GFN.</li>
+<li>A later fault overwrites and drops that leaf at the same slot.</li>
+<li><code>pte_list_remove</code> looks up the rmap under the computed key (<code>sp->gfn + index</code>),
+finds nothing, hits <code>KVM_BUG_ON_DATA_CORRUPTION</code> → <code>BUG</code>.</li>
+</ol>
+<hr>
+<h2 id="impacts">Impacts</h2>
+<p><strong>1. KVM escape.</strong> Guest-side actions alone → compromise the host. Either panic the
+host kernel to take down every co-tenant VM (DoS), or run as root on the host to
+take over the host and every guest on it (RCE).</p>
+<p><strong>2. Local privilege escalation.</strong> On distros where <code>/dev/kvm</code> is world-writable
+<code>0666</code> (RHEL/EL8+ is the default), an unprivileged local user reaches the same bug
+directly — no guest needed. The researcher classes this as the minor impact, but
+for shared multi-user and self-hosted CI hosts it’s a real exposure: a plain
+unprivileged account becomes root.</p>
+<h3 id="upstream-faq-condensed">Upstream FAQ, condensed</h3>
+<ul>
+<li><strong>arm64 affected?</strong> No. x86 only. (Unpatched ITScape, CVE-2026-46316, hits arm64
+— different MMU entirely.)</li>
+<li><strong>Is this a QEMU bug?</strong> No. In-kernel KVM, triggered independently of QEMU’s
+emulation. Relevant to clouds running their own virtualization stack.</li>
+<li><strong>Guest root required?</strong> Yes, to load the module. Cloud tenants normally have root
+in their own VM, so the bar is trivially met. Without guest root, chain an LPE.</li>
+<li><strong>QEMU version sensitivity?</strong> A third-party hotfix collection notes QEMU 6.x
+partially blunts the <em>PoC</em> (the L1 VM crashes before the host panics) while the
+escape signal still reached L0 KVM. QEMU is not a security boundary here.</li>
+</ul>
+<hr>
+<h2 id="detection">Detection</h2>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">uname</span><span style="color:#79B8FF"> -r</span><span style="color:#6A737D">                                    # in the affected window?</span></span>
+<span class="line"><span style="color:#B392F0">uname</span><span style="color:#79B8FF"> -m</span><span style="color:#6A737D">                                    # x86_64 only</span></span>
+<span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> /sys/module/kvm_intel/parameters/nested</span><span style="color:#6A737D"> # Y = nested virt on</span></span>
+<span class="line"><span style="color:#B392F0">cat</span><span style="color:#9ECBFF"> /sys/module/kvm_amd/parameters/nested</span><span style="color:#6A737D">   # AMD host</span></span>
+<span class="line"><span style="color:#B392F0">ls</span><span style="color:#79B8FF"> -l</span><span style="color:#9ECBFF"> /dev/kvm</span><span style="color:#6A737D">                              # crw-rw-rw- = EL8+ default</span></span>
+<span class="line"><span style="color:#B392F0">grep</span><span style="color:#79B8FF"> -r</span><span style="color:#9ECBFF"> nested</span><span style="color:#9ECBFF"> /etc/modprobe.d/</span><span style="color:#6A737D">             # a config re-enabling nesting</span></span></code></pre>
+<p>Also check the fix by source, not version string:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">sudo</span><span style="color:#9ECBFF"> grep</span><span style="color:#79B8FF"> -q</span><span style="color:#9ECBFF"> "role.word == role.word"</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#9ECBFF">  /lib/modules/</span><span style="color:#E1E4E8">$(</span><span style="color:#B392F0">uname</span><span style="color:#79B8FF"> -r</span><span style="color:#E1E4E8">)</span><span style="color:#9ECBFF">/build/arch/x86/kvm/mmu/mmu.c</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#E1E4E8">  &#x26;&#x26; </span><span style="color:#79B8FF">echo</span><span style="color:#9ECBFF"> PATCHED</span><span style="color:#F97583"> ||</span><span style="color:#79B8FF"> echo</span><span style="color:#9ECBFF"> VULNERABLE</span></span></code></pre>
+<hr>
+<h2 id="patch-status">Patch status</h2>
+<p>Stable backports, landed by the kernel CNA on 2026-07-04:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tree</th><th>First fixed</th><th>Commit</th></tr></thead><tbody><tr><td>mainline</td><td>7.2-rc1</td><td><code>81ccda30b4e8</code></td></tr><tr><td>7.1.x</td><td>7.1.3</td><td><code>1ae7d5a6db6c</code></td></tr><tr><td>6.18.x (LTS)</td><td>6.18.38</td><td><code>5e470998a23e</code></td></tr><tr><td>6.12.x (LTS)</td><td>6.12.95</td><td><code>2ad3afa40ac6</code></td></tr><tr><td>6.6.x (LTS)</td><td>6.6.144</td><td><code>9291654d69e0</code></td></tr><tr><td>6.1.x (LTS)</td><td>6.1.177</td><td><code>b1337aae5e19</code></td></tr><tr><td>7.0.x</td><td><strong>never</strong></td><td>EOL at 7.0.14</td></tr><tr><td>5.15.x</td><td><strong>never</strong></td><td>no backport expected</td></tr><tr><td>5.10.x</td><td><strong>never</strong></td><td>no backport expected</td></tr></tbody></table>
+<p><strong>Why 5.15 and 5.10 can never be fixed:</strong> those pre-6.0 trees don’t contain
+<code>kvm_mmu_get_child_sp()</code> or <code>sp->shadowed_translation[]</code> at all. A backport would
+require a manual rewrite against <code>kvm_mmu_get_page()</code> and <code>sp->gfns[]</code>. The prior
+partial fix <code>0cb2af2ea66a</code> was never backported to them for the same reason. Both
+lines have shipped point releases since 2026-07-04 without picking it up.</p>
+<h3 id="distribution-rollup">Distribution rollup</h3>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Distribution</th><th>Release</th><th>First fixed</th><th>Status</th></tr></thead><tbody><tr><td>Debian</td><td>sid</td><td>7.1.3-1</td><td>Fixed</td></tr><tr><td>Debian</td><td>trixie (13)</td><td>6.12.95-1 (DSA-6381-1)</td><td>Fixed</td></tr><tr><td>Debian</td><td>bookworm (12)</td><td>6.1.177-1 (DLA-4688-1)</td><td>Fixed</td></tr><tr><td>Debian</td><td><strong>bullseye (11), default</strong></td><td>—</td><td><strong>Vulnerable</strong> (5.10.x)</td></tr><tr><td>Debian</td><td>bullseye, opt-in <code>linux-6.1</code></td><td>6.1.177-1~deb11u1 (DLA-4700-1)</td><td>Fixed</td></tr><tr><td>Proxmox VE</td><td>9 default (7.0)</td><td>7.0.14-4-pve</td><td>Fixed</td></tr><tr><td>Proxmox VE</td><td>9 opt-in 6.17</td><td>6.17.13-15-pve (PSA-2026-00027-1)</td><td>Fixed</td></tr><tr><td>Proxmox VE</td><td><strong>9 opt-in 6.14</strong></td><td>—</td><td><strong>Vulnerable</strong></td></tr><tr><td>Proxmox VE</td><td>8 default (6.8)</td><td>6.8.12-33-pve</td><td>Fixed</td></tr><tr><td>Proxmox VE</td><td><strong>8 opt-in 6.14</strong></td><td>—</td><td><strong>Vulnerable</strong></td></tr><tr><td>Proxmox VE</td><td><strong>8 old 6.11</strong></td><td>—</td><td><strong>Vulnerable</strong></td></tr><tr><td>NixOS</td><td>unstable / 26.05</td><td>6.18.38</td><td>Fixed</td></tr><tr><td>Rocky / RHEL</td><td>EL10</td><td>6.12.0-211.32.1.el10_2 (RHSA-2026:36956)</td><td>Fixed</td></tr><tr><td>Rocky / RHEL</td><td>EL9</td><td>5.14.0-687.24.1.el9_8 (RHSA-2026:36957)</td><td>Fixed</td></tr><tr><td>Rocky / RHEL</td><td>EL8</td><td>4.18.0-553.144.1.el8_10 (RLSA-2026:39179)</td><td>Fixed</td></tr><tr><td>Amazon Linux</td><td>2023 default (6.1)</td><td>ALAS2023-2026-2001</td><td>Fixed</td></tr><tr><td>Amazon Linux</td><td>2023 kernel6.12</td><td>ALAS2023-2026-1970</td><td>Fixed</td></tr><tr><td>Amazon Linux</td><td>2023 kernel6.18</td><td>ALAS2023-2026-1969</td><td>Fixed</td></tr><tr><td><strong>Amazon Linux 2</strong></td><td>—</td><td>—</td><td><strong>Permanently vulnerable</strong> (EOL 2026-06-30, no ALAS)</td></tr></tbody></table>
+<p>Prose-only advisories exist for RHEL 10.0 EUS (RHSA-2026:39371), 9.6 EUS (:38902),
+9.4 SAP US (:37729), 9.2 SAP US (:40082), 8.8 TUS/SAP US (:41229), 8.6 AUS/EUS
+(:49033), and real-time kernels (:39983, :39082). AlmaLinux rebuilt the main
+errata as ALSA-2026:36956/36957/39083. Oracle Linux 10 and CloudLinux OS 10 are
+expected to track RHEL.</p>
+<p><strong>Debian vs EL, the key contrast:</strong> Debian keeps <code>/dev/kvm</code> at <code>root:kvm 0660</code>, so
+the unprivileged <em>local</em> vector needs <code>kvm</code> group membership. The EL family ships
+it <strong>world-accessible</strong> by default from EL8 onward, so on those hosts <em>any</em> local
+user reaches the bug without needing a guest at all. Combined with the guest-escape
+path, that makes EL the higher-exposure case.</p>
+<hr>
+<h2 id="mitigations">Mitigations</h2>
+<p><strong>The real fix is the kernel patch.</strong> Two interim measures each narrow exposure
+without closing the hole.</p>
+<p><strong>Disable nested virtualization</strong> — removes the guest-driven path:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#B392F0">sudo</span><span style="color:#9ECBFF"> modprobe</span><span style="color:#79B8FF"> -r</span><span style="color:#9ECBFF"> kvm_intel</span><span style="color:#6A737D">                                  # kvm_amd on AMD</span></span>
+<span class="line"><span style="color:#79B8FF">echo</span><span style="color:#9ECBFF"> 'options kvm_intel nested=0'</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> sudo</span><span style="color:#9ECBFF"> tee</span><span style="color:#9ECBFF"> /etc/modprobe.d/99-januscape.conf</span></span>
+<span class="line"><span style="color:#B392F0">sudo</span><span style="color:#9ECBFF"> modprobe</span><span style="color:#9ECBFF"> kvm_intel</span></span></code></pre>
+<p>Canonical flags unprivileged containers as not a concern (they lack permission to
+start KVM-accelerated VMs). <strong>Privileged containers may have sufficient permissions
+and should not be considered safe.</strong></p>
+<p><strong>Restrict <code>/dev/kvm</code></strong> — removes the unprivileged local vector only:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#79B8FF">echo</span><span style="color:#9ECBFF"> 'KERNEL=="kvm", GROUP="kvm", MODE="0660"'</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> sudo</span><span style="color:#9ECBFF"> tee</span><span style="color:#9ECBFF"> /etc/udev/rules.d/65-kvm.rules</span></span></code></pre>
+<p>This does nothing against a hostile guest escaping. Don’t mistake it for a fix.</p>
+<hr>
+<h2 id="what-i-took-away">What I took away</h2>
+<p><strong>The rmap key invariant is the thing to audit.</strong> “Install and teardown must agree
+on the GFN” sounds trivially true and isn’t enforced anywhere — it’s an emergent
+property of two independent code paths. The moment a page can be <em>reused</em> under a
+different configuration, every consumer that recomputes identity from partial state
+becomes suspect.</p>
+<p><strong>Fixing a bug class is not fixing the class.</strong> <code>0cb2af2ea66a</code> fixed the GFN
+mismatch. <code>81ccda30b4e8</code> fixed the role mismatch. Same function, same data
+structure, same failure mode — sixteen years apart. When a patch adds a <em>condition</em>
+to a reuse check, ask what other identity fields that check is still ignoring.</p>
+<p><strong>Absent fields are load-bearing.</strong> <code>direct</code> wasn’t a correctness detail. It was
+the difference between two kinds of object with different lifetime rules, and
+nothing forced the reuse check to care.</p>
+<p><strong>Nested virtualization is a large, quiet attack surface.</strong> It’s typically framed
+as a feature for CI runners and nested containers. Here it routed a 16-year-old
+kernel bug directly into multi-tenant cloud hosts — on a path the host operator
+believed was hardware-accelerated and therefore not the legacy software walker.</p>
+<p><strong>Version strings lie on enterprise distros.</strong> RHEL backports without moving the
+base version, so <code>uname -r</code> cannot confirm a fix. The reliable signals are the
+erratum ID and grepping the source for the fixed condition.</p>
+<hr>
+<h2 id="the-researchers-trilogy">The researcher’s trilogy</h2>
+<p>Same researcher, three KVM escapes, each a different subsystem:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Bug</th><th>CVE</th><th>Area</th><th>Arch</th></tr></thead><tbody><tr><td><strong>ITScape</strong></td><td>CVE-2026-46316</td><td>vGIC-ITS</td><td>arm64</td></tr><tr><td><strong>Januscape</strong></td><td>CVE-2026-53359</td><td>shadow MMU</td><td>x86</td></tr><tr><td><strong>Zapscape</strong></td><td>CVE-2026-64561</td><td>shadow MMU, recursive zap / missing <code>root_count</code></td><td>x86</td></tr></tbody></table>
+<hr>
+<h2 id="disclosure-timeline">Disclosure timeline</h2>
+<ul>
+<li><strong>2026-06-12</strong> — details and exploit submitted to <a href="mailto:security@kernel.org">security@kernel.org</a></li>
+<li><strong>2026-06-13</strong> — patch handling discussed with KVM maintainers Paolo Bonzini and Sean</li>
+<li><strong>2026-06-17</strong> — patch posted to lore for pre-merge testing</li>
+<li><strong>2026-06-19</strong> — <code>81ccda30b4e8</code> merged into mainline</li>
+<li><strong>2026-07-01</strong> — submitted to <a href="mailto:linux-distros@vs.openwall.org">linux-distros@vs.openwall.org</a>, 5-day embargo</li>
+<li><strong>2026-07-04</strong> — CVE-2026-53359 assigned; stable backports landed</li>
+<li><strong>2026-07-06</strong> — embargo ended → oss-security post and public writeup</li>
+</ul>
+<hr>
+<h2 id="references">References</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Source</th><th>Link</th></tr></thead><tbody><tr><td>PoC + technical writeup</td><td><a href="https://github.com/V4bel/Januscape">https://github.com/V4bel/Januscape</a></td></tr><tr><td>oss-security post</td><td><a href="https://www.openwall.com/lists/oss-security/2026/07/06/7">https://www.openwall.com/lists/oss-security/2026/07/06/7</a></td></tr><tr><td>Patch-status tracker</td><td><a href="https://github.com/suominen/januscape">https://github.com/suominen/januscape</a></td></tr><tr><td>Fix commit</td><td><a href="https://github.com/torvalds/linux/commit/81ccda30b4e83d8f5cc4fd50503c44e3a33abfeb">https://github.com/torvalds/linux/commit/81ccda30b4e83d8f5cc4fd50503c44e3a33abfeb</a></td></tr><tr><td>Introducing commit (v2.6.36)</td><td><a href="https://github.com/torvalds/linux/commit/2032a93d66fa282ba0f2ea9152eeff9511fa9a96">https://github.com/torvalds/linux/commit/2032a93d66fa282ba0f2ea9152eeff9511fa9a96</a></td></tr><tr><td>Prior partial fix (GFN variant)</td><td><a href="https://github.com/torvalds/linux/commit/0cb2af2ea66ad8ff195c156ea690f11216285bdf">https://github.com/torvalds/linux/commit/0cb2af2ea66ad8ff195c156ea690f11216285bdf</a></td></tr><tr><td>CVE record</td><td><a href="https://www.cve.org/CVERecord?id=CVE-2026-53359">https://www.cve.org/CVERecord?id=CVE-2026-53359</a></td></tr><tr><td>Canonical mitigations</td><td><a href="https://canonical.com/blog/januscape-linux-vulnerability-mitigations-available">https://canonical.com/blog/januscape-linux-vulnerability-mitigations-available</a></td></tr><tr><td>Debian security tracker</td><td><a href="https://security-tracker.debian.org/tracker/CVE-2026-53359">https://security-tracker.debian.org/tracker/CVE-2026-53359</a></td></tr><tr><td>kvmCTF program</td><td><a href="https://security.googleblog.com/2024/06/virtual-escape-real-reward-introducing.html">https://security.googleblog.com/2024/06/virtual-escape-real-reward-introducing.html</a></td></tr></tbody></table></div> <nav class="article-footer" aria-label="Writeup navigation"> <a class="back-link font-mono" href="/writeups/">← back to writeups</a> </nav> </article>  </main> <footer class="site-footer"> <div class="footer-inner"> <p class="footer-line"> <span class="prompt" aria-hidden="true">$</span> whoami
+<span class="dim">→ Feizal Said · Nairobi, Kenya</span> </p> <ul class="footer-links" aria-label="Social links"> <li><a href="https://github.com/feizalsaid" target="_blank" rel="noopener noreferrer">GitHub</a></li><li><a href="https://www.linkedin.com/in/feizalsaid" target="_blank" rel="noopener noreferrer">LinkedIn</a></li><li><a href="https://app.hackthebox.com/users/1941706" target="_blank" rel="noopener noreferrer">Hack The Box</a></li><li><a href="mailto:feizalsaid9@gmail.com" target="_blank" rel="noopener noreferrer">Email</a></li> </ul> <p class="copy">&copy; 2026 Feizal Said. Built with Astro.</p> </div> </footer>  </div> <!-- Cloudflare Web Analytics --><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon="{&quot;token&quot;: &quot;2ba77651b5984680a6fb4eac0950315e&quot;}"></script><!-- End Cloudflare Web Analytics --> </body></html> 
